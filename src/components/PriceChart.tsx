@@ -174,7 +174,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     categoryPercentage: 0.6,
     interaction: { mode: 'index', intersect: false },
     plugins: {
-      persistentRefLine: { refValue: ref, display: showPrice } as any,
+      persistentRefLine: { refValue: ref, display: false } as any,
       legend: {
         display: true,
         position: 'top',
