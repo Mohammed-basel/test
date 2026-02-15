@@ -146,7 +146,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
       borderColor: '#dc2626',
       borderWidth: 2,
       borderDash: [8, 4],
-      hidden:true,
+      hidden:false,
       yAxisID: 'yBar',   
     });
   }
