@@ -69,15 +69,15 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
   const barLabel = 'السعر الأسبوعي';
   const lineLabel = 'التغير % عن الاسترشادي';
-  const baselineLabel = 'خط الاسترشادي (0%)';
+  const refLabel = 'السعر الاسترشادي';
 
   // Tailwind-like green used across the UI (close to: rgb(134 239 172)).
   const changeGreen = 'rgb(22, 163, 74)';
   const axisColor = '#334155';
 
-  const { labels, weeklyPrices, pctVsRef, ref, yLineMin, yLineMax } = useMemo(() => {
+  const { labels, weeklyPrices, pctVsRef, ref } = useMemo(() => {
     if (!product) {
-      return { labels: [], weeklyPrices: [], pctVsRef: [], ref: 0, yLineMin: -10, yLineMax: 10 };
+      return { labels: [], weeklyPrices: [], pctVsRef: [], ref: 0 };
     }
 
     // Show only weeks up to the selected week (e.g., week 2 shows weeks 1-2).
@@ -87,22 +87,10 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
     const lbls = sorted.map((p) => formatWeekLabel(p.week_number, 'ar', p.week_date));
     const prices = sorted.map((p) => Number(p.price) || 0);
-
     const refPrice = Number(product.reference_price) || 0;
-    const pct = prices.map((p) =>
-      refPrice ? +(((p - refPrice) / refPrice) * 100).toFixed(2) : 0
-    );
+    const pct = prices.map((p) => (refPrice ? +(((p - refPrice) / refPrice) * 100).toFixed(2) : 0));
 
-    // Force the % axis to be centered around 0 (reference baseline) with padding.
-    const vals = [...pct, 0];
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const spread = Math.max(1, max - min);
-    const pad = Math.max(5, spread * 0.2);
-    const yMin = Math.floor((min - pad) * 100) / 100;
-    const yMax = Math.ceil((max + pad) * 100) / 100;
-
-    return { labels: lbls, weeklyPrices: prices, pctVsRef: pct, ref: refPrice, yLineMin: yMin, yLineMax: yMax };
+    return { labels: lbls, weeklyPrices: prices, pctVsRef: pct, ref: refPrice };
   }, [product, currentWeek]);
 
   if (!product) return null;
@@ -143,22 +131,28 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     });
   }
 
-  // Always show a 0% baseline on the % axis so negatives are below and positives are above.
-  // User request: merge the "red" + "black" helper lines into ONE line.
-  // We keep the baseline functionality (0%) but render it using the red color.
-  datasets.push({
-    label: baselineLabel,
-    type: 'line' as const,
-    data: labels.map(() => 0),
-    borderColor: '#dc2626',
-    borderWidth: 2,
-    borderDash: [6, 6],
-    pointRadius: 0,
-    pointHoverRadius: 0,
-    tension: 0,
-    fill: false,
-    yAxisID: 'yLine',
-  });
+  if (showPrice) {
+    const isSinglePoint = labels.length === 1;
+    datasets.push({
+      label: refLabel,
+      type: 'line' as const,
+      data: labels.map(() => ref),
+      borderColor: '#dc2626',
+      borderWidth: 2,
+      borderDash: [8, 4],
+      // With only 1 week, Chart.js can't draw a line segment, so show a red dot
+      // to make the reference price visible and avoid confusion.
+      showLine: !isSinglePoint,
+      pointRadius: isSinglePoint ? 4 : 0,
+      pointHoverRadius: isSinglePoint ? 5 : 0,
+      pointBackgroundColor: '#dc2626',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      tension: 0,
+      fill: false,
+      yAxisID: 'yBar',
+    });
+  }
 
   const data = { labels, datasets };
 
@@ -207,7 +201,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         callbacks: {
           label: (ctx: any) => {
             const val = ctx.parsed.y;
-            if (ctx.dataset.label === baselineLabel) return `${baselineLabel}: 0.00%`;
+            if (ctx.dataset.label === refLabel) return `${refLabel}: ₪${Number(val).toFixed(2)}`;
             if (ctx.dataset.label === lineLabel)
               return `${lineLabel}: ${val > 0 ? '+' : ''}${Number(val).toFixed(2)}%`;
             return `${ctx.dataset.label}: ₪${Number(val).toFixed(2)}`;
@@ -221,7 +215,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
       },
       yBar: {
-        display: true,
+        display: viewMode === 'all' || viewMode === 'price',
         position: 'left',
         title: {
           display: true,
@@ -235,8 +229,6 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
       yLine: {
         display: viewMode === 'all' || viewMode === 'change',
         position: 'right',
-        suggestedMin: yLineMin,
-        suggestedMax: yLineMax,
         title: {
           display: true,
           text: 'نسبة التغير %',
