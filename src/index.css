@@ -55,7 +55,6 @@
     animation: gentle-pulse 2s ease-in-out infinite;
   }
 
-@layer utilities {
   .ticker-viewport {
     width: 100%;
     overflow: hidden;
