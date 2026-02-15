@@ -55,32 +55,37 @@
     animation: gentle-pulse 2s ease-in-out infinite;
   }
 
+@layer utilities {
   .ticker-viewport {
     width: 100%;
     overflow: hidden;
     display: flex;
     align-items: center;
+    /* In RTL, we ensure the direction is set */
+    direction: rtl; 
   }
 
   .ticker-track {
     display: flex;
- 
     width: max-content; 
     flex-shrink: 0;
     white-space: nowrap;
-    animation: ticker-marquee linear infinite;
+    will-change: transform;
+    /* For RTL, we move from 0 to positive 50% */
+    animation: ticker-marquee-rtl 60s linear infinite;
   }
 
-  @keyframes ticker-marquee {
+  @keyframes ticker-marquee-rtl {
     0% {
       transform: translateX(0);
     }
     100% {
-      transform: translateX(-50%);
+      /* Moves content to the right for RTL flow */
+      transform: translateX(50%);
     }
   }
 
   .ticker-viewport:hover .ticker-track {
     animation-play-state: paused;
   }
-} 
+}
