@@ -96,7 +96,7 @@ export function ProductTicker({
                   <span className={`text-sm font-black ${
                     above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
                   }`}>
-                    {format2(it.price)}
+                    {format2(it.price) + "₪"}
                   </span>
                 </div>
               </div>
