@@ -69,7 +69,6 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
   const barLabel = 'السعر الأسبوعي';
   const lineLabel = 'التغير % عن الاسترشادي';
-  const refLabel = 'السعر الاسترشادي';
   const baselineLabel = 'خط الاسترشادي (0%)';
 
   // Tailwind-like green used across the UI (close to: rgb(134 239 172)).
@@ -144,39 +143,22 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     });
   }
 
-  // Always show the reference price as a horizontal dashed line (even if only one week is displayed).
-  if (showPrice) {
-    datasets.push({
-      label: refLabel,
-      type: 'line' as const,
-      data: labels.map(() => ref),
-      borderColor: '#dc2626',
-      borderWidth: 2,
-      borderDash: [8, 4],
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      tension: 0,
-      fill: false,
-      yAxisID: 'yBar',
-    });
-  }
-
   // Always show a 0% baseline on the % axis so negatives are below and positives are above.
-  if (showChange) {
-    datasets.push({
-      label: baselineLabel,
-      type: 'line' as const,
-      data: labels.map(() => 0),
-      borderColor: '#334155',
-      borderWidth: 2,
-      borderDash: [6, 6],
-      pointRadius: 0,
-      pointHoverRadius: 0,
-      tension: 0,
-      fill: false,
-      yAxisID: 'yLine',
-    });
-  }
+  // User request: merge the "red" + "black" helper lines into ONE line.
+  // We keep the baseline functionality (0%) but render it using the red color.
+  datasets.push({
+    label: baselineLabel,
+    type: 'line' as const,
+    data: labels.map(() => 0),
+    borderColor: '#dc2626',
+    borderWidth: 2,
+    borderDash: [6, 6],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    tension: 0,
+    fill: false,
+    yAxisID: 'yLine',
+  });
 
   const data = { labels, datasets };
 
@@ -225,7 +207,6 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         callbacks: {
           label: (ctx: any) => {
             const val = ctx.parsed.y;
-            if (ctx.dataset.label === refLabel) return `${refLabel}: ₪${Number(val).toFixed(2)}`;
             if (ctx.dataset.label === baselineLabel) return `${baselineLabel}: 0.00%`;
             if (ctx.dataset.label === lineLabel)
               return `${lineLabel}: ${val > 0 ? '+' : ''}${Number(val).toFixed(2)}%`;
@@ -240,7 +221,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
       },
       yBar: {
-        display: showPrice,
+        display: true,
         position: 'left',
         title: {
           display: true,
@@ -252,7 +233,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         ticks: { font: { size: tickFontSize } },
       },
       yLine: {
-        display: showChange,
+        display: viewMode === 'all' || viewMode === 'change',
         position: 'right',
         suggestedMin: yLineMin,
         suggestedMax: yLineMax,
@@ -267,21 +248,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
           font: { size: tickFontSize },
           callback: (v) => `${Number(v).toFixed(2)}%`,
         },
-        grid: { 
-          display: true,
-          color: (context) => {
-            if (context.tick.value === 0) {
-              return 'rgba(51, 65, 85, 0.4)'; // Darker line for zero baseline
-            }
-            return 'rgba(0,0,0,0.06)';
-          },
-          lineWidth: (context) => {
-            if (context.tick.value === 0) {
-              return 2;
-            }
-            return 1;
-          },
-        },
+        grid: { display: false },
       },
     },
   };
