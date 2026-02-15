@@ -18,9 +18,6 @@ import { Download } from 'lucide-react';
 import { ProductWithPrices } from '../types';
 import { formatWeekLabel } from '../lib/weekLabels';
 
-
-
-
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -33,16 +30,31 @@ ChartJS.register(
   Legend
 );
 
-type ViewMode = 'all' | 'price' | 'change';
+// 1. PLUGIN: Draws the reference line across the entire chart area (even for 1 point)
+const persistentRefLinePlugin: Plugin = {
+  id: 'persistentRefLine',
+  afterDraw: (chart) => {
+    const { ctx, chartArea: { left, right }, scales: { yBar } } = chart;
+    const pluginOptions = chart.options.plugins as any;
+    const config = pluginOptions.persistentRefLine;
 
-interface PriceChartProps {
-  products: ProductWithPrices[];
-  currentWeek?: number;
-}
+    if (!yBar || !config || config.refValue === undefined || !config.display) return;
 
+    const yPos = yBar.getPixelForValue(config.refValue);
 
-// White canvas background (useful when exporting the chart as an image).
-const whiteBackgroundPlugin: Plugin<'bar'> = {
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]);
+    ctx.strokeStyle = '#dc2626'; // Red
+    ctx.moveTo(left, yPos);
+    ctx.lineTo(right, yPos);
+    ctx.stroke();
+    ctx.restore();
+  },
+};
+
+const whiteBackgroundPlugin: Plugin = {
   id: 'whiteBackground',
   beforeDraw: (chart) => {
     const ctx = chart.canvas.getContext('2d');
@@ -55,27 +67,12 @@ const whiteBackgroundPlugin: Plugin<'bar'> = {
   },
 };
 
-const persistentRefLinePlugin = {
-  id: 'persistentRefLine',
-  afterDraw: (chart) => {
-    const { ctx, chartArea: { left, right }, scales: { yBar } } = chart;
-    const options = chart.options.plugins.persistentRefLine;
+type ViewMode = 'all' | 'price' | 'change';
 
-    if (!yBar || !options || options.refValue === undefined || !options.display) return;
-
-    const yPos = yBar.getPixelForValue(options.refValue);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 4]); // The dash style you wanted
-    ctx.strokeStyle = '#dc2626'; // Red
-    ctx.moveTo(left, yPos);
-    ctx.lineTo(right, yPos);
-    ctx.stroke();
-    ctx.restore();
-  }
-};
+interface PriceChartProps {
+  products: ProductWithPrices[];
+  currentWeek?: number;
+}
 
 export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const product = products[0];
@@ -83,29 +80,11 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const chartRef = useRef<any>(null);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
-  const legendFontSize = isMobile ? 11 : 14;
-  const tickFontSize = isMobile ? 10 : 14;
-  const axisTitleFontSize = isMobile ? 12 : 16;
-  const tooltipTitleSize = isMobile ? 12 : 14;
-  const tooltipBodySize = isMobile ? 11 : 13;
-
-  const titleText =
-    'نسب التغير ومستويات الأسعار أسبوعيا للسلع الأساسية خلال شهر رمضان مقارنة بالأسعار الاسترشادية';
-
-  const barLabel = 'السعر الأسبوعي';
-  const lineLabel = 'التغير % عن الاسترشادي';
-  const refLabel = 'السعر الاسترشادي';
-
-  // Tailwind-like green used across the UI (close to: rgb(134 239 172)).
   const changeGreen = 'rgb(22, 163, 74)';
-  const axisColor = '#334155';
 
-  const { labels, weeklyPrices, pctVsRef, ref } = useMemo(() => {
-    if (!product) {
-      return { labels: [], weeklyPrices: [], pctVsRef: [], ref: 0 };
-    }
+  const { labels, weeklyPrices, pctVsRef, ref, yBarLimits, yLineLimits } = useMemo(() => {
+    if (!product) return { labels: [], weeklyPrices: [], pctVsRef: [], ref: 0, yBarLimits: {}, yLineLimits: {} };
 
-    // Show only weeks up to the selected week (e.g., week 2 shows weeks 1-2).
     const sorted = [...product.prices]
       .filter((p) => p.week_number <= currentWeek)
       .sort((a, b) => a.week_number - b.week_number);
@@ -115,238 +94,146 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     const refPrice = Number(product.reference_price) || 0;
     const pct = prices.map((p) => (refPrice ? +(((p - refPrice) / refPrice) * 100).toFixed(2) : 0));
 
-    return { labels: lbls, weeklyPrices: prices, pctVsRef: pct, ref: refPrice };
+    // --- SCALE SYNC LOGIC ---
+    // Calculate limits so refPrice on left axis matches 0% on right axis
+    const maxPriceDist = Math.max(...prices.map(p => Math.abs(p - refPrice)), refPrice * 0.1);
+    const maxPctDist = Math.max(...pct.map(Math.abs), 10);
+
+    return {
+      labels: lbls,
+      weeklyPrices: prices,
+      pctVsRef: pct,
+      ref: refPrice,
+      yBarLimits: { min: Math.max(0, refPrice - maxPriceDist * 1.2), max: refPrice + maxPriceDist * 1.2 },
+      yLineLimits: { min: -(maxPctDist * 1.2), max: maxPctDist * 1.2 }
+    };
   }, [product, currentWeek]);
 
   if (!product) return null;
 
   const datasets: any[] = [];
-
   const showPrice = viewMode === 'all' || viewMode === 'price';
   const showChange = viewMode === 'all' || viewMode === 'change';
 
   if (showPrice) {
     datasets.push({
-      label: barLabel,
-      type: 'bar' as const,
-      data:[], //weeklyPrices,
+      label: 'السعر الأسبوعي',
+      type: 'bar',
+      data: weeklyPrices,
       backgroundColor: 'rgba(0,86,179,0.7)',
       borderColor: 'rgba(0,86,179,1)',
       borderWidth: 1,
-      borderRadius: 4,
       yAxisID: 'yBar',
+    });
+    
+    // Dataset for Legend only
+    datasets.push({
+      label: 'السعر الاسترشادي',
+      type: 'line',
+      data: [], 
+      borderColor: '#dc2626',
+      borderDash: [8, 4],
+      borderWidth: 2,
     });
   }
 
   if (showChange) {
     datasets.push({
-      label: lineLabel,
-      type: 'line' as const,
+      label: 'التغير % عن الاسترشادي',
+      type: 'line',
       data: pctVsRef,
       borderColor: changeGreen,
-      backgroundColor: 'rgba(22,163,74,0.18)',
       borderWidth: 3,
+      borderDash: [6, 4], // Always dashed as requested
       pointRadius: 4,
       pointBackgroundColor: changeGreen,
-      pointBorderColor: '#fff',
-      pointBorderWidth: 2,
       tension: 0.3,
-      fill: false,
       yAxisID: 'yLine',
     });
   }
 
-  if (showPrice) {
-    const isSinglePoint = labels.length === 1;
-    datasets.push({
-      label: refLabel,
-      type: 'line' as const,
-      data: labels.map(() => ref),
-      borderColor: '#dc2626',
-      borderWidth: 2,
-      borderDash: [8, 4],
-      // With only 1 week, Chart.js can't draw a line segment, so show a red dot
-      // to make the reference price visible and avoid confusion.
-      showLine: !isSinglePoint,
-      pointRadius: isSinglePoint ? 4 : 0,
-      pointHoverRadius: isSinglePoint ? 5 : 0,
-      pointBackgroundColor: '#dc2626',
-      pointBorderColor: '#fff',
-      pointBorderWidth: 2,
-      tension: 0,
-      fill: false,
-      yAxisID: 'yBar',
-    });
-  }
-
-  const data = { labels, datasets };
-
-  const options: ChartOptions<'bar'> = {
+  const options: any = {
     responsive: true,
     maintainAspectRatio: false,
-    barPercentage: 0.4,
-    categoryPercentage: 0.6,
     interaction: { mode: 'index', intersect: false },
     plugins: {
+      persistentRefLine: { refValue: ref, display: showPrice },
       legend: {
-        display: true,
-        position: 'top',
-        labels: {
-          font: { size: legendFontSize, weight: 'bold' },
-          padding: isMobile ? 10 : 16,
-          usePointStyle: true,
-          generateLabels: (chart) => {
-            const base = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
-            base.forEach((l: any) => {
-              const ds: any = chart.data.datasets?.[l.datasetIndex];
-              const isLine = ds?.type === 'line';
-
-              if (isLine) {
-                l.pointStyle = 'line';
-                l.lineWidth = ds.borderWidth ?? 3;
-                l.strokeStyle = ds.borderColor;
-                l.fillStyle = 'rgba(0,0,0,0)';
-              } else {
-                l.pointStyle = 'rectRounded';
-                l.fillStyle = ds.backgroundColor;
-                l.strokeStyle = ds.borderColor;
-                l.lineWidth = 0;
-              }
-            });
-            return base;
-          },
-        },
+        rtl: true,
+        labels: { font: { size: isMobile ? 11 : 14, weight: 'bold' }, usePointStyle: true }
       },
       tooltip: {
-        backgroundColor: 'rgba(15,23,42,0.9)',
-        titleFont: { size: tooltipTitleSize, weight: 'bold' },
-        bodyFont: { size: tooltipBodySize },
-        padding: isMobile ? 10 : 14,
-        cornerRadius: 10,
+        rtl: true,
         callbacks: {
           label: (ctx: any) => {
             const val = ctx.parsed.y;
-            if (ctx.dataset.label === refLabel) return `${refLabel}: ₪${Number(val).toFixed(2)}`;
-            if (ctx.dataset.label === lineLabel)
-              return `${lineLabel}: ${val > 0 ? '+' : ''}${Number(val).toFixed(2)}%`;
-            return `${ctx.dataset.label}: ₪${Number(val).toFixed(2)}`;
-          },
-        },
-      },
+            if (ctx.dataset.yAxisID === 'yLine') return `${ctx.dataset.label}: ${val > 0 ? '+' : ''}${val}%`;
+            return `${ctx.dataset.label}: ₪${val.toFixed(2)}`;
+          }
+        }
+      }
     },
     scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
-      },
+      x: { grid: { display: false }, ticks: { font: { weight: 'bold' } } },
       yBar: {
-        display: viewMode === 'all' || viewMode === 'price',
+        display: showPrice,
         position: 'left',
-        title: {
-          display: true,
-          text: 'السعر (₪)',
-          font: { size: axisTitleFontSize, weight: 'bold' },
-        },
-        grid: { color: 'rgba(0,0,0,0.06)' },
-        beginAtZero: true,
-        ticks: { font: { size: tickFontSize } },
+        min: yBarLimits.min,
+        max: yBarLimits.max,
+        title: { display: true, text: 'السعر (₪)', font: { weight: 'bold' } },
       },
       yLine: {
-        display: viewMode === 'all' || viewMode === 'change',
+        display: showChange,
         position: 'right',
-        title: {
-          display: true,
-          text: 'نسبة التغير %',
-          font: { size: axisTitleFontSize, weight: 'bold' },
-          color: axisColor,
-        },
-        ticks: {
-          color: axisColor,
-          font: { size: tickFontSize },
-          callback: (v) => `${Number(v).toFixed(2)}%`,
-        },
-        grid: { display: false },
-      },
-    },
-
-    persistentRefLine: {
-      refValue: ref,      // The numeric reference price
-      display: showPrice  // Only show if we are in 'all' or 'price' mode
+        min: yLineLimits.min,
+        max: yLineLimits.max,
+        title: { display: true, text: 'نسبة التغير %', font: { weight: 'bold' } },
+        ticks: { callback: (v: any) => `${v}%` },
+        grid: { drawOnChartArea: false }
+      }
     }
   };
 
   const downloadChart = () => {
-    const instance = chartRef.current;
-    const chart = instance?.chart ?? instance;
-    const url = chart?.toBase64Image?.();
+    const url = chartRef.current?.toBase64Image();
     if (!url) return;
-
     const a = document.createElement('a');
     a.href = url;
     a.download = `${product.name}-chart.png`;
-    document.body.appendChild(a);
     a.click();
-    a.remove();
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5 flex flex-col gap-3 sm:gap-4">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="flex justify-center gap-2">
-          {(['all', 'price', 'change'] as const).map((mode) => {
-            const labelsMap: Record<ViewMode, string> = {
-              all: 'الكل',
-              price: 'السعر',
-              change: 'التغير',
-            };
-            const active = viewMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => setViewMode(mode)}
-                className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-all
-                  ${active ? 'bg-blue-600 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-              >
-                {labelsMap[mode]}
-              </button>
-            );
-          })}
+    <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5 flex flex-col gap-4">
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          {(['all', 'price', 'change'] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-3 py-1 rounded-full text-xs font-bold ${viewMode === mode ? 'bg-blue-600 text-white' : 'bg-gray-100'}`}
+            >
+              {mode === 'all' ? 'الكل' : mode === 'price' ? 'السعر' : 'التغير'}
+            </button>
+          ))}
         </div>
-
-        <div className="flex justify-center">
-          <button
-            onClick={downloadChart}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm"
-            title="تنزيل الرسم كصورة"
-          >
-            <Download className="w-4 h-4" />
-            تنزيل الرسم
-          </button>
-        </div>
+        <button onClick={downloadChart} className="p-2 border rounded-lg hover:bg-gray-50">
+          <Download className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="text-center">
-        <p className="text-xs sm:text-sm text-gray-600 font-semibold">{titleText}</p>
-        <h3 className="text-base sm:text-xl font-black text-gray-800 mt-2">{product.name}</h3>
+        <h3 className="text-lg font-black text-gray-800">{product.name}</h3>
       </div>
 
-      <div className="h-[380px] sm:h-[440px]">
+      <div className="h-[400px]">
         <Chart
           ref={chartRef}
           type="bar"
-          data={data as any}
+          data={{ labels, datasets }}
           options={options}
-          plugins={[whiteBackgroundPlugin, persistentRefLinePlugin] as any}
+          plugins={[whiteBackgroundPlugin, persistentRefLinePlugin]}
         />
-      </div>
-
-      <div className="flex justify-center gap-6 pt-2 border-t border-gray-100 text-xs sm:text-sm text-gray-600">
-        <span>
-          السعر الاسترشادي: <strong className="text-gray-800">₪{ref.toFixed(2)}</strong>
-        </span>
-        <span>
-          الأسبوع المعروض: <strong className="text-blue-600">الأسبوع {currentWeek}</strong>
-        </span>
       </div>
     </div>
   );
