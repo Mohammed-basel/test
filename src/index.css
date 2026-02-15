@@ -9,6 +9,8 @@
     font-family: 'Tajawal', sans-serif;
   }
 }
+
+/* Not a Tailwind class, keep it normal (or move it into utilities if you want) */
 .line-clamp-3 {
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -16,44 +18,35 @@
   overflow: hidden;
 }
 
+/* Keyframes (best outside layers) */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.2; transform: scaleX(1); }
+  50% { opacity: 0.4; transform: scaleX(1.05); }
+}
+
+@keyframes gentle-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.9; }
+}
+
+@keyframes ticker-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #3b82f6;
     border-radius: 10px;
   }
-
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #2563eb;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% {
-      opacity: 0.2;
-      transform: scaleX(1);
-    }
-    50% {
-      opacity: 0.4;
-      transform: scaleX(1.05);
-    }
-  }
-
-  @keyframes gentle-pulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.02);
-      opacity: 0.9;
-    }
   }
 
   .animate-pulse-glow {
@@ -63,39 +56,21 @@
   .animate-gentle-pulse {
     animation: gentle-pulse 2s ease-in-out infinite;
   }
-}
 
-
-@layer utilities {
-
-  /* Stock-like ticker (seamless loop) */
   .ticker-viewport {
+    width: 100%;
     position: relative;
-    overflow: hidden;
   }
 
   .ticker-track {
     display: inline-flex;
-    gap: 0.75rem; /* gap-3 */
+    align-items: center;
     white-space: nowrap;
     will-change: transform;
-    /* Important: make animation consistent even if the page direction is RTL */
-    direction: ltr;
-    /* Slow it down a lot (stock-like calm ticker) */
-    animation: ticker-marquee 180s linear infinite;
+    animation: ticker-marquee 30s linear infinite;
   }
 
-  .ticker-track:hover {
+  .ticker-viewport:hover .ticker-track {
     animation-play-state: paused;
   }
-
-  @keyframes ticker-marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-
 }
