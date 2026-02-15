@@ -1,0 +1,92 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Tajawal', sans-serif;
+  }
+}
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #3b82f6;
+    border-radius: 10px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #2563eb;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 0.2;
+      transform: scaleX(1);
+    }
+    50% {
+      opacity: 0.4;
+      transform: scaleX(1.05);
+    }
+  }
+
+  @keyframes gentle-pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.02);
+      opacity: 0.9;
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .animate-gentle-pulse {
+    animation: gentle-pulse 2s ease-in-out infinite;
+  }
+}
+
+
+@layer utilities {
+  /*
+    Ticker (marquee) animation:
+    Uses CSS variables so the component can set the exact pixel distance
+    based on measured content width (prevents "ending" + obvious duplicates).
+  */
+  @keyframes ticker-scroll-var {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(calc(-1 * var(--ticker-distance, 0px)));
+    }
+  }
+
+  .animate-ticker-scroll {
+    animation: ticker-scroll-var var(--ticker-duration, 40s) linear infinite;
+    will-change: transform;
+  }
+
+  .animate-ticker-scroll:hover {
+    animation-play-state: paused;
+  }
+}

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>لوحة بيانات أسعار السلع</title>
+    <meta property="og:image" content="https://bolt.new/static/og_default.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+    <style>
+      :root { color-scheme: light; }
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Arial, sans-serif;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+      .fallback {
+        max-width: 840px;
+        margin: 6vh auto;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+      }
+      .fallback h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        line-height: 1.2;
+      }
+      .fallback p { margin: 6px 0 12px; }
+      .fallback code {
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+      .fallback ol { padding-left: 20px; }
+      .fallback li { margin: 6px 0; }
+    </style>
+  </head>
+  <body>
+    <div id="root">
+      <main class="fallback" dir="ltr">
+        <h1>Price Dashboard</h1>
+        <p>If you see this message, the app JavaScript is not running yet.</p>
+        <ol>
+          <li>Start the dev server: <code>npm install</code> then <code>npm run dev</code>.</li>
+          <li>Open the URL Vite prints (usually <code>http://localhost:5173</code>).</li>
+        </ol>
+      </main>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
