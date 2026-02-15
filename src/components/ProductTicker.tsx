@@ -35,9 +35,6 @@ function format2(n: number): string {
   return n.toFixed(2);
 }
 
-/**
- * MAIN COMPONENT
- */
 export function ProductTicker({
   products,
   currentWeek,
@@ -47,7 +44,6 @@ export function ProductTicker({
   currentWeek: number;
   maxItems?: number;
 }) {
-  // 1. Process data and limit to maxItems
   const baseItems = useMemo(() => {
     return [...products]
       .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
@@ -57,38 +53,23 @@ export function ProductTicker({
         const hasRef = Number.isFinite(ref) && ref > 0;
         const diff = hasRef ? price - ref : 0;
         const pct = hasRef ? (diff / ref) * 100 : 0;
-
         return { id: p.id, name: p.name, price, ref, hasRef, diff, pct };
       })
       .slice(0, maxItems);
   }, [products, currentWeek, maxItems]);
 
-  // 2. Double the items for a seamless loop
-  // The CSS 'ticker-marquee' moves to -50%, which matches this duplication perfectly.
-  const trackItems = useMemo(() => {
-    if (baseItems.length === 0) return [];
-    return [...baseItems, ...baseItems];
-  }, [baseItems]);
+  // Duplicate the array for the seamless loop
+  const trackItems = [...baseItems, ...baseItems];
 
   if (!baseItems.length) return null;
 
   return (
-    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm">
-      {/* Container Label (Optional) */}
-      <div className="px-4 mb-2">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-          Market Watch
-        </span>
-      </div>
-
-      {/* Ticker Viewport - Matches your CSS class */}
+    <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
+      {/* Viewport */}
       <div className="ticker-viewport relative">
         
-        {/* Ticker Track - Matches your CSS class */}
-        <div 
-          className="ticker-track" 
-          style={{ animationDuration: '60s' }} // Slower speed for 25 items
-        >
+        {/* Track */}
+        <div className="ticker-track">
           {trackItems.map((it, idx) => {
             const above = it.hasRef && it.price > it.ref + 0.0001;
             const under = it.hasRef && it.price < it.ref - 0.0001;
@@ -103,11 +84,11 @@ export function ProductTicker({
                   {it.name}
                 </span>
 
-                {/* Vertical Divider */}
-                <div className="h-4 w-[1px] bg-gray-100" />
+                {/* Vertical Divider (RTL friendly) */}
+                <div className="h-4 w-[1px] bg-gray-200" />
 
-                {/* Price & Indicator */}
-                <div className="flex items-center gap-1">
+                {/* Price Display */}
+                <div className="flex items-center gap-1 flex-row-reverse">
                   {above && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />}
                   {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                   {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
@@ -123,9 +104,9 @@ export function ProductTicker({
           })}
         </div>
 
-        {/* Gradient Fades for professional "React Fast Marquee" style edges */}
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-gray-50 to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-gray-50 to-transparent z-10" />
+        {/* Gradient Fades flipped for RTL flow */}
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10" />
       </div>
     </div>
   );
