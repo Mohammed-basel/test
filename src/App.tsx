@@ -394,7 +394,7 @@ URL.revokeObjectURL(url);
 </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
-          <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 custom-scrollbar" style="min-height=400px;min-height: 300px !important;max-height: 650px !important;background-color: antiquewhite;">
+          <div className="space-y-4 max-h-[calc(100vh-400px)] overflow-y-auto pr-2 custom-scrollbar" style={{minHeight:"400px",maxHeight: "650px" ,backgroundColor: "antiquewhite"}}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-4 py-2">
               {displayedProducts.map((product) => (
                 <div key={product.id} id={`product-${product.id}`}>
