@@ -224,7 +224,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
       },
       yBar: {
-        display: false,
+        display: showPrice,
         position: 'left',
         min: yBarLimits.min,
         max: yBarLimits.max,
@@ -234,7 +234,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
           font: { size: axisTitleFontSize, weight: 'bold' },
         },
         grid: { color: 'rgba(0,0,0,0.06)' },
-        ticks: { font: { size: tickFontSize } },
+        ticks: { display: false,font: { size: tickFontSize } },
       },
       yLine: {
         display: showChange,
