@@ -141,7 +141,8 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     datasets.push({
       label: refLabel,
       type: 'line',
-      data: [], 
+      data: labels.map(() => ref),
+       showLine: false,
       borderColor: '#dc2626',
       borderWidth: 2,
       borderDash: [8, 4],
@@ -234,7 +235,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
           font: { size: axisTitleFontSize, weight: 'bold' },
         },
         grid: { color: 'rgba(0,0,0,0.06)' },
-        ticks: { display: false,font: { size: tickFontSize } },
+        ticks: { font: { size: tickFontSize } },
       },
       yLine: {
         display: showChange,
