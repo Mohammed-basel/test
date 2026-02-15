@@ -14,12 +14,6 @@ function format2(n: number) {
   return n.toFixed(2);
 }
 
-/**
- * Ticker / marquee (stock-like).
- * - Always loops (no ending)
- * - Uses "double track" technique (two identical sequences)
- * - Avoids showing only red by treating missing/0 reference as "neutral"
- */
 export function ProductTicker({
   products,
   currentWeek,
@@ -39,31 +33,21 @@ export function ProductTicker({
         const diff = hasRef ? price - ref : 0;
         const pct = hasRef ? (diff / ref) * 100 : 0;
 
-        return {
-          id: p.id,
-          name: p.name,
-          price,
-          ref,
-          hasRef,
-          diff,
-          pct,
-        };
+        return { id: p.id, name: p.name, price, ref, hasRef, diff, pct };
       })
       .slice(0, maxItems);
   }, [products, currentWeek, maxItems]);
 
-  // If a filter elsewhere makes the list tiny, duplicates become very obvious.
-  // We keep the ticker stable by repeating items until we have a reasonable run length.
   const cycleItems = useMemo(() => {
     if (!baseItems.length) return [];
-    const minCount = Math.max(12, Math.min(30, baseItems.length * 3)); // gives nicer flow for small lists
+    const minCount = Math.max(12, Math.min(30, baseItems.length * 3));
     const out = [...baseItems];
     while (out.length < minCount) out.push(...baseItems);
     return out.slice(0, minCount);
   }, [baseItems]);
 
   const trackItems = useMemo(() => {
-    // Two identical sequences for a seamless loop
+    // Two identical sequences for seamless looping
     return [...cycleItems, ...cycleItems];
   }, [cycleItems]);
 
@@ -74,30 +58,30 @@ export function ProductTicker({
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 overflow-hidden">
       <div className="flex items-center justify-between gap-2 mb-2">
         <span className="text-xs font-black text-gray-700">
-          شريط الأسعار (مقارنة بالسعر الاسترشادي)
+          Prices ticker (vs. reference price)
         </span>
-        <span className="text-[11px] text-gray-500">— يتحرك تلقائياً</span>
+        {/* removed: “— moves automatically” */}
       </div>
 
-      {/* Keep the marquee math predictable even in RTL pages */}
-      <div className="ticker-viewport">
+      {/* IMPORTANT: relative for fade overlays */}
+      <div className="ticker-viewport relative overflow-hidden">
         <div className="ticker-track">
           {trackItems.map((it, idx) => {
-            const above = it.hasRef && it.price > it.ref + 0.0001; // أعلى (أحمر)
-            const under = it.hasRef && it.price < it.ref - 0.0001; // أقل (أخضر)
+            const above = it.hasRef && it.price > it.ref + 0.0001;
+            const under = it.hasRef && it.price < it.ref - 0.0001;
 
             return (
               <div
                 key={`${it.id}-${idx}`}
-                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm"
+                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm mr-2"
                 title={
                   it.hasRef
-                    ? `${it.name} — السعر الحالي ${format2(it.price)} | الاسترشادي ${format2(
+                    ? `${it.name} — Current ${format2(it.price)} | Ref ${format2(
                         it.ref
-                      )} | الفرق ${it.diff >= 0 ? '+' : ''}${format2(it.diff)} (${
+                      )} | Diff ${it.diff >= 0 ? '+' : ''}${format2(it.diff)} (${
                         it.pct >= 0 ? '+' : ''
                       }${it.pct.toFixed(2)}%)`
-                    : `${it.name} — السعر الحالي ${format2(it.price)} (لا يوجد سعر استرشادي)`
+                    : `${it.name} — Current ${format2(it.price)} (no reference price)`
                 }
               >
                 <span className="text-xs font-bold text-gray-800 max-w-[180px] truncate">
