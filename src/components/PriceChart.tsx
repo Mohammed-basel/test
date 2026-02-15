@@ -174,7 +174,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     categoryPercentage: 0.6,
     interaction: { mode: 'index', intersect: false },
     plugins: {
-      persistentRefLine: { refValue: ref, display: false } as any,
+      persistentRefLine: { refValue: ref, display: true } as any,
       legend: {
         display: true,
         position: 'top',
@@ -224,7 +224,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
       },
       yBar: {
-        display: showPrice,
+        display: false,
         position: 'left',
         min: yBarLimits.min,
         max: yBarLimits.max,
