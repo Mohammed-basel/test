@@ -9,6 +9,17 @@ function getLatestPriceUpToWeek(p: ProductWithPrices, week: number) {
   return Number(candidate?.price ?? 0);
 }
 
+function format2(n: number) {
+  if (!Number.isFinite(n)) return '0.00';
+  return n.toFixed(2);
+}
+
+/**
+ * Ticker / marquee (stock-like).
+ * - Always loops (no ending)
+ * - Uses "double track" technique (two identical sequences)
+ * - Avoids showing only red by treating missing/0 reference as "neutral"
+ */
 export function ProductTicker({
   products,
   currentWeek,
@@ -18,60 +29,91 @@ export function ProductTicker({
   currentWeek: number;
   maxItems?: number;
 }) {
-  const items = useMemo(() => {
-    const list = products
-      .map((p, index) => {
+  const baseItems = useMemo(() => {
+    return [...products]
+      .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+      .map((p) => {
         const price = getLatestPriceUpToWeek(p, currentWeek);
         const ref = Number(p.reference_price ?? 0);
-        const pct = ref > 0 ? ((price - ref) / ref) * 100 : 0;
+        const hasRef = Number.isFinite(ref) && ref > 0;
+        const diff = hasRef ? price - ref : 0;
+        const pct = hasRef ? (diff / ref) * 100 : 0;
+
         return {
           id: p.id,
           name: p.name,
-          number: index + 1,
-          pct: Number(pct.toFixed(1)),
+          price,
+          ref,
+          hasRef,
+          diff,
+          pct,
         };
       })
       .slice(0, maxItems);
-
-    // Duplicate for seamless loop.
-    return [...list, ...list];
   }, [products, currentWeek, maxItems]);
 
+  // If a filter elsewhere makes the list tiny, duplicates become very obvious.
+  // We keep the ticker stable by repeating items until we have a reasonable run length.
+  const cycleItems = useMemo(() => {
+    if (!baseItems.length) return [];
+    const minCount = Math.max(12, Math.min(30, baseItems.length * 3)); // gives nicer flow for small lists
+    const out = [...baseItems];
+    while (out.length < minCount) out.push(...baseItems);
+    return out.slice(0, minCount);
+  }, [baseItems]);
+
+  const trackItems = useMemo(() => {
+    // Two identical sequences for a seamless loop
+    return [...cycleItems, ...cycleItems];
+  }, [cycleItems]);
+
   if (!products.length) return null;
+  if (!baseItems.length) return null;
 
   return (
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 overflow-hidden">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs font-bold text-gray-700">مقارنة بالسعر الاسترشادي</span>
-        <span className="text-[10px] text-gray-500">— يتحرك تلقائياً</span>
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="text-xs font-black text-gray-700">
+          شريط الأسعار (مقارنة بالسعر الاسترشادي)
+        </span>
+        <span className="text-[11px] text-gray-500">— يتحرك تلقائياً</span>
       </div>
 
-      <div className="relative overflow-hidden">
-        <div className="flex gap-2 whitespace-nowrap animate-ticker-scroll">
-          {items.map((it, idx) => {
-            const isAbove = it.pct > 0.01;
-            const isBelow = it.pct < -0.01;
+      {/* Keep the marquee math predictable even in RTL pages */}
+      <div className="ticker-viewport">
+        <div className="ticker-track">
+          {trackItems.map((it, idx) => {
+            const above = it.hasRef && it.price > it.ref + 0.0001; // أعلى (أحمر)
+            const under = it.hasRef && it.price < it.ref - 0.0001; // أقل (أخضر)
 
             return (
               <div
                 key={`${it.id}-${idx}`}
-                className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-full px-2.5 py-1 shadow-sm"
-                title={`${it.name} — ${it.pct > 0 ? '+' : ''}${it.pct}%`}
+                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-full px-3 py-1 shadow-sm"
+                title={
+                  it.hasRef
+                    ? `${it.name} — السعر الحالي ${format2(it.price)} | الاسترشادي ${format2(
+                        it.ref
+                      )} | الفرق ${it.diff >= 0 ? '+' : ''}${format2(it.diff)} (${
+                        it.pct >= 0 ? '+' : ''
+                      }${it.pct.toFixed(2)}%)`
+                    : `${it.name} — السعر الحالي ${format2(it.price)} (لا يوجد سعر استرشادي)`
+                }
               >
-                <span className="flex items-center justify-center w-5 h-5 rounded-full bg-gray-700 text-white text-[10px] font-black">
-                  {it.number}
+                <span className="text-xs font-bold text-gray-800 max-w-[180px] truncate">
+                  {it.name}
                 </span>
 
-                {isAbove && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[2.5]" />}
-                {isBelow && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[2.5]" />}
-                {!isAbove && !isBelow && <Minus className="w-3.5 h-3.5 text-gray-400 stroke-[2.5]" />}
+                {above && <ArrowUp className="w-4 h-4 text-red-600" />}
+                {under && <ArrowDown className="w-4 h-4 text-green-600" />}
+                {!above && !under && <Minus className="w-4 h-4 text-gray-400" />}
 
                 <span
                   className={`text-xs font-black ${
-                    isAbove ? 'text-red-700' : isBelow ? 'text-green-700' : 'text-gray-500'
+                    above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
                   }`}
                 >
-                  {it.pct > 0 ? '+' : ''}{it.pct}%
+                  {format2(it.price)}
                 </span>
               </div>
             );

@@ -30,6 +30,8 @@ ChartJS.register(
   Legend
 );
 
+type ViewMode = 'all' | 'price' | 'change';
+
 interface PriceChartProps {
   products: ProductWithPrices[];
   currentWeek?: number;
@@ -52,6 +54,7 @@ const whiteBackgroundPlugin: Plugin<'bar'> = {
 
 export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const product = products[0];
+  const [viewMode, setViewMode] = useState<ViewMode>('all');
   const chartRef = useRef<any>(null);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
@@ -62,19 +65,20 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const tooltipBodySize = isMobile ? 11 : 13;
 
   const titleText =
-    'نسبة التغير عن السعر الاسترشادي خلال شهر رمضان';
+    'نسب التغير ومستويات الأسعار أسبوعيا للسلع الأساسية خلال شهر رمضان مقارنة بالأسعار الاسترشادية';
 
-  const changeLabel = 'نسبة التغير %';
-  const baselineLabel = 'السعر الاسترشادي (0%)';
+  const barLabel = 'السعر الأسبوعي';
+  const lineLabel = 'التغير % عن الاسترشادي';
+  const refLabel = 'السعر الاسترشادي';
+  const baselineLabel = 'خط الاسترشادي (0%)';
 
   // Tailwind-like green used across the UI (close to: rgb(134 239 172)).
   const changeGreen = 'rgb(22, 163, 74)';
-  const changeRed = 'rgb(220, 38, 38)';
   const axisColor = '#334155';
 
-  const { labels, pctVsRef, ref, yLineMin, yLineMax } = useMemo(() => {
+  const { labels, weeklyPrices, pctVsRef, ref, yLineMin, yLineMax } = useMemo(() => {
     if (!product) {
-      return { labels: [], pctVsRef: [], ref: 0, yLineMin: -10, yLineMax: 10 };
+      return { labels: [], weeklyPrices: [], pctVsRef: [], ref: 0, yLineMin: -10, yLineMax: 10 };
     }
 
     // Show only weeks up to the selected week (e.g., week 2 shows weeks 1-2).
@@ -99,32 +103,69 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     const yMin = Math.floor((min - pad) * 100) / 100;
     const yMax = Math.ceil((max + pad) * 100) / 100;
 
-    return { labels: lbls, pctVsRef: pct, ref: refPrice, yLineMin: yMin, yLineMax: yMax };
+    return { labels: lbls, weeklyPrices: prices, pctVsRef: pct, ref: refPrice, yLineMin: yMin, yLineMax: yMax };
   }, [product, currentWeek]);
 
   if (!product) return null;
 
   const datasets: any[] = [];
 
-  // Show percentage change as bars with color coding
+  const showPrice = viewMode === 'all' || viewMode === 'price';
+  const showChange = viewMode === 'all' || viewMode === 'change';
+
+  if (showPrice) {
+    datasets.push({
+      label: barLabel,
+      type: 'bar' as const,
+      data: weeklyPrices,
+      backgroundColor: 'rgba(0,86,179,0.7)',
+      borderColor: 'rgba(0,86,179,1)',
+      borderWidth: 1,
+      borderRadius: 4,
+      yAxisID: 'yBar',
+    });
+  }
+
+  if (showChange) {
+    datasets.push({
+      label: lineLabel,
+      type: 'line' as const,
+      data: pctVsRef,
+      borderColor: changeGreen,
+      backgroundColor: 'rgba(22,163,74,0.18)',
+      borderWidth: 3,
+      pointRadius: 4,
+      pointBackgroundColor: changeGreen,
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+      tension: 0.3,
+      fill: false,
+      yAxisID: 'yLine',
+    });
+  }
+
+  // Always show the reference price as a horizontal dashed line (even if only one week is displayed).
   datasets.push({
-    label: changeLabel,
-    type: 'bar' as const,
-    data: pctVsRef,
-    backgroundColor: pctVsRef.map(val => val >= 0 ? 'rgba(220, 38, 38, 0.7)' : 'rgba(22, 163, 74, 0.7)'),
-    borderColor: pctVsRef.map(val => val >= 0 ? changeRed : changeGreen),
+    label: refLabel,
+    type: 'line' as const,
+    data: labels.map(() => ref),
+    borderColor: '#dc2626',
     borderWidth: 2,
-    borderRadius: 4,
-    yAxisID: 'yLine',
+    borderDash: [8, 4],
+    pointRadius: 0,
+    pointHoverRadius: 0,
+    tension: 0,
+    fill: false,
+    yAxisID: 'yBar',
   });
 
-  // Show 0% baseline (reference price line)
+  // Always show a 0% baseline on the % axis so negatives are below and positives are above.
   datasets.push({
     label: baselineLabel,
     type: 'line' as const,
     data: labels.map(() => 0),
     borderColor: '#334155',
-    borderWidth: 3,
+    borderWidth: 2,
     borderDash: [6, 6],
     pointRadius: 0,
     pointHoverRadius: 0,
@@ -138,8 +179,8 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const options: ChartOptions<'bar'> = {
     responsive: true,
     maintainAspectRatio: false,
-    barPercentage: 0.6,
-    categoryPercentage: 0.8,
+    barPercentage: 0.4,
+    categoryPercentage: 0.6,
     interaction: { mode: 'index', intersect: false },
     plugins: {
       legend: {
@@ -162,8 +203,8 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
                 l.fillStyle = 'rgba(0,0,0,0)';
               } else {
                 l.pointStyle = 'rectRounded';
-                l.fillStyle = ds.backgroundColor?.[0] || ds.backgroundColor;
-                l.strokeStyle = ds.borderColor?.[0] || ds.borderColor;
+                l.fillStyle = ds.backgroundColor;
+                l.strokeStyle = ds.borderColor;
                 l.lineWidth = 0;
               }
             });
@@ -180,8 +221,11 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         callbacks: {
           label: (ctx: any) => {
             const val = ctx.parsed.y;
-            if (ctx.dataset.label === baselineLabel) return `${baselineLabel}`;
-            return `${ctx.dataset.label}: ${val > 0 ? '+' : ''}${Number(val).toFixed(2)}%`;
+            if (ctx.dataset.label === refLabel) return `${refLabel}: ₪${Number(val).toFixed(2)}`;
+            if (ctx.dataset.label === baselineLabel) return `${baselineLabel}: 0.00%`;
+            if (ctx.dataset.label === lineLabel)
+              return `${lineLabel}: ${val > 0 ? '+' : ''}${Number(val).toFixed(2)}%`;
+            return `${ctx.dataset.label}: ₪${Number(val).toFixed(2)}`;
           },
         },
       },
@@ -191,36 +235,35 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         grid: { display: false },
         ticks: { font: { size: tickFontSize, weight: 'bold' }, maxRotation: 0, minRotation: 0 },
       },
-      yLine: {
+      yBar: {
         display: true,
         position: 'left',
+        title: {
+          display: true,
+          text: 'السعر (₪)',
+          font: { size: axisTitleFontSize, weight: 'bold' },
+        },
+        grid: { color: 'rgba(0,0,0,0.06)' },
+        beginAtZero: true,
+        ticks: { font: { size: tickFontSize } },
+      },
+      yLine: {
+        display: viewMode === 'all' || viewMode === 'change',
+        position: 'right',
         suggestedMin: yLineMin,
         suggestedMax: yLineMax,
         title: {
           display: true,
-          text: 'نسبة التغير عن السعر الاسترشادي %',
+          text: 'نسبة التغير %',
           font: { size: axisTitleFontSize, weight: 'bold' },
           color: axisColor,
         },
         ticks: {
           color: axisColor,
           font: { size: tickFontSize },
-          callback: (v) => `${Number(v).toFixed(1)}%`,
+          callback: (v) => `${Number(v).toFixed(2)}%`,
         },
-        grid: { 
-          color: (context) => {
-            if (context.tick.value === 0) {
-              return 'rgba(51, 65, 85, 0.3)'; // Darker line for zero
-            }
-            return 'rgba(0,0,0,0.06)';
-          },
-          lineWidth: (context) => {
-            if (context.tick.value === 0) {
-              return 2;
-            }
-            return 1;
-          },
-        },
+        grid: { display: false },
       },
     },
   };
@@ -241,15 +284,38 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 sm:p-5 flex flex-col gap-3 sm:gap-4">
-      <div className="flex justify-center">
-        <button
-          onClick={downloadChart}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm"
-          title="تنزيل الرسم كصورة"
-        >
-          <Download className="w-4 h-4" />
-          تنزيل الرسم
-        </button>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex justify-center gap-2">
+          {(['all', 'price', 'change'] as const).map((mode) => {
+            const labelsMap: Record<ViewMode, string> = {
+              all: 'الكل',
+              price: 'السعر',
+              change: 'التغير',
+            };
+            const active = viewMode === mode;
+            return (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={`px-3 py-1 rounded-full text-xs sm:text-sm font-bold transition-all
+                  ${active ? 'bg-blue-600 text-white shadow' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                {labelsMap[mode]}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={downloadChart}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-bold text-xs sm:text-sm"
+            title="تنزيل الرسم كصورة"
+          >
+            <Download className="w-4 h-4" />
+            تنزيل الرسم
+          </button>
+        </div>
       </div>
 
       <div className="text-center">
