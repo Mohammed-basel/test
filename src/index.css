@@ -29,10 +29,8 @@
   50% { transform: scale(1.02); opacity: 0.9; }
 }
 
-@keyframes ticker-marquee {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
+
+
 
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
@@ -59,18 +57,30 @@
 
   .ticker-viewport {
     width: 100%;
-    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
   }
 
   .ticker-track {
-    display: inline-flex;
-    align-items: center;
+    display: flex;
+ 
+    width: max-content; 
+    flex-shrink: 0;
     white-space: nowrap;
-    will-change: transform;
-    animation: ticker-marquee 30s linear infinite;
+    animation: ticker-marquee linear infinite;
+  }
+
+  @keyframes ticker-marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
   }
 
   .ticker-viewport:hover .ticker-track {
     animation-play-state: paused;
   }
-}
+} 
