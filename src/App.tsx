@@ -390,7 +390,7 @@ URL.revokeObjectURL(url);
 </div>
 
 
-          <ProductTicker products={products} currentWeek={currentWeek} />
+          <ProductTicker products={filteredProducts} currentWeek={currentWeek} />
 </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">

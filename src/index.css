@@ -67,34 +67,16 @@
 
 
 @layer utilities {
-
-  /* Stock-like ticker (seamless loop) */
-  .ticker-viewport {
-    position: relative;
-    overflow: hidden;
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 
-  .ticker-track {
-    display: inline-flex;
-    gap: 0.75rem; /* gap-3 */
-    white-space: nowrap;
-    will-change: transform;
-    /* Important: make animation consistent even if the page direction is RTL */
-    direction: ltr;
-    animation: ticker-marquee 35s linear infinite;
+  .animate-ticker-scroll {
+    animation: ticker-scroll 40s linear infinite;
   }
 
-  .ticker-track:hover {
+  .animate-ticker-scroll:hover {
     animation-play-state: paused;
   }
-
-  @keyframes ticker-marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
-  }
-
 }
