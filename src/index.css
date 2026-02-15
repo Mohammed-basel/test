@@ -67,23 +67,13 @@
 
 
 @layer utilities {
-  /*
-    Ticker (marquee) animation:
-    Uses CSS variables so the component can set the exact pixel distance
-    based on measured content width (prevents "ending" + obvious duplicates).
-  */
-  @keyframes ticker-scroll-var {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(calc(-1 * var(--ticker-distance, 0px)));
-    }
+  @keyframes ticker-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
   }
 
   .animate-ticker-scroll {
-    animation: ticker-scroll-var var(--ticker-duration, 40s) linear infinite;
-    will-change: transform;
+    animation: ticker-scroll 40s linear infinite;
   }
 
   .animate-ticker-scroll:hover {
