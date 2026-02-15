@@ -18,6 +18,9 @@ import { Download } from 'lucide-react';
 import { ProductWithPrices } from '../types';
 import { formatWeekLabel } from '../lib/weekLabels';
 
+
+
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -50,6 +53,28 @@ const whiteBackgroundPlugin: Plugin<'bar'> = {
     ctx.fillRect(0, 0, chart.width, chart.height);
     ctx.restore();
   },
+};
+
+const persistentRefLinePlugin = {
+  id: 'persistentRefLine',
+  afterDraw: (chart) => {
+    const { ctx, chartArea: { left, right }, scales: { yBar } } = chart;
+    const options = chart.options.plugins.persistentRefLine;
+
+    if (!yBar || !options || options.refValue === undefined || !options.display) return;
+
+    const yPos = yBar.getPixelForValue(options.refValue);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 2;
+    ctx.setLineDash([8, 4]); // The dash style you wanted
+    ctx.strokeStyle = '#dc2626'; // Red
+    ctx.moveTo(left, yPos);
+    ctx.lineTo(right, yPos);
+    ctx.stroke();
+    ctx.restore();
+  }
 };
 
 export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
@@ -104,7 +129,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
     datasets.push({
       label: barLabel,
       type: 'bar' as const,
-      data: weeklyPrices,
+      data:[], //weeklyPrices,
       backgroundColor: 'rgba(0,86,179,0.7)',
       borderColor: 'rgba(0,86,179,1)',
       borderWidth: 1,
@@ -243,6 +268,11 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         grid: { display: false },
       },
     },
+
+    persistentRefLine: {
+      refValue: ref,      // The numeric reference price
+      display: showPrice  // Only show if we are in 'all' or 'price' mode
+    }
   };
 
   const downloadChart = () => {
@@ -306,7 +336,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
           type="bar"
           data={data as any}
           options={options}
-          plugins={[whiteBackgroundPlugin] as any}
+          plugins={[whiteBackgroundPlugin, persistentRefLinePlugin] as any}
         />
       </div>
 
