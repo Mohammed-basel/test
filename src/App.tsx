@@ -245,11 +245,11 @@ const manualAdherence = adherenceByWeek[currentWeek] ?? 0;
       'الأسبوع',
       'السعر الأسبوعي',
       'السعر الاسترشادي',
-      'التغير عن الاسترشادي %',
-      'التغير عن الاسترشادي (₪)',
+      'التغيّر عن الاسترشادي %',
+      'التغيّر عن الاسترشادي (NIS)',
       'السعر للأسبوع السابق',
-      'التغير عن الأسبوع السابق %',
-      'التغير عن الأسبوع السابق (₪)',
+      'التغيّر عن الأسبوع السابق %',
+      'التغيّر عن الأسبوع السابق (NIS)',
     ];
 
     const rows = filteredProducts.map((product) => {
@@ -316,8 +316,8 @@ URL.revokeObjectURL(url);
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50" dir="rtl">
       <div className="max-w-[1800px] mx-auto p-6">
         <header className="text-center mb-8">
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-blue-900 leading-tight">
-            منصة رصد أسعار بعض السلع الأساسية خلال شهر رمضان المبارك
+          <h1 className="text-2xl sm:text-4xl lg:text-4xl font-black text-blue-900 leading-tight">
+            منصة رصد أسعار لأهم السلع الأساسية خلال شهر رمضان المبارك
           </h1>
           <p className="text-lg text-gray-600 font-semibold mt-3">
             متابعة وتحليل أسعار السلع الاستهلاكية المختارة خلال شهر رمضان
