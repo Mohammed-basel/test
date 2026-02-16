@@ -33,7 +33,7 @@ const adherenceByWeek: Record<number, number> = {
   2: 28,
 };
 
-const manualAdherence = adherenceByWeek[currentWeek];
+const manualAdherence = adherenceByWeek[currentWeek] ?? 0;
 
   
   const weekOptions = useMemo(() => {
@@ -305,12 +305,14 @@ URL.revokeObjectURL(url);
           </div>
         )}
 
-        <KPICards
-          products={products}
-          currentWeek={currentWeek}
-          maxWeek={maxWeek}
-          adherencePercent={manualAdherence}
-        />
+      <KPICards
+        products={products}
+        currentWeek={currentWeek}
+        maxIncrease={maxIncrease}
+        maxDecrease={maxDecrease}
+        adherencePercent={manualAdherence}
+      />
+
 
         <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
