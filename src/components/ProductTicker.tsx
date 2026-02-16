@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
 interface PriceEntry {
@@ -73,67 +73,75 @@ export function ProductTicker({
     return undefined;
   }, [products, currentWeek]);
 
-  const trackItems = [...baseItems, ...baseItems];
-  if (!baseItems.length) return null;
-
-  // ✅ Drag-to-scroll state
+  // ✅ Drag-to-scroll (stable) using Pointer Events + window listeners
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({
+    pointerId: -1 as number,
     startX: 0,
     startScrollLeft: 0,
     moved: false,
   });
 
-  const onMouseDown = (e: React.MouseEvent) => {
+  const stopDrag = () => {
+    dragState.current.pointerId = -1;
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    const onWinUp = () => stopDrag();
+    const onWinCancel = () => stopDrag();
+    window.addEventListener('pointerup', onWinUp);
+    window.addEventListener('pointercancel', onWinCancel);
+    window.addEventListener('blur', onWinUp);
+    return () => {
+      window.removeEventListener('pointerup', onWinUp);
+      window.removeEventListener('pointercancel', onWinCancel);
+      window.removeEventListener('blur', onWinUp);
+    };
+  }, []);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = viewportRef.current;
     if (!el) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+
     setIsDragging(true);
-    dragState.current.startX = e.pageX;
+    dragState.current.pointerId = e.pointerId;
+    dragState.current.startX = e.clientX;
     dragState.current.startScrollLeft = el.scrollLeft;
     dragState.current.moved = false;
+
+    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+    e.preventDefault();
   };
 
-  const onMouseMove = (e: React.MouseEvent) => {
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return;
+    if (dragState.current.pointerId !== e.pointerId) return;
+
     const el = viewportRef.current;
     if (!el) return;
 
-    const dx = e.pageX - dragState.current.startX;
-    if (Math.abs(dx) > 3) dragState.current.moved = true;
-
-    // عكس الإشارة يعطي احساس طبيعي داخل RTL
-    el.scrollLeft = dragState.current.startScrollLeft - dx;
-  };
-
-  const stopDrag = () => setIsDragging(false);
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const el = viewportRef.current;
-    if (!el) return;
-    setIsDragging(true);
-    dragState.current.startX = e.touches[0].pageX;
-    dragState.current.startScrollLeft = el.scrollLeft;
-    dragState.current.moved = false;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    const el = viewportRef.current;
-    if (!el) return;
-
-    const dx = e.touches[0].pageX - dragState.current.startX;
+    const dx = e.clientX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
 
     el.scrollLeft = dragState.current.startScrollLeft - dx;
+    e.preventDefault();
   };
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (dragState.current.pointerId === e.pointerId) stopDrag();
+  };
+
+  const trackItems = [...baseItems, ...baseItems];
+  if (!baseItems.length) return null;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
-      {/* Week title */}
       <div className="flex items-center justify-start mb-2" dir="rtl">
         <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
-         متوسط الأسبوع {currentWeek}
+          متوسط الأسبوع {currentWeek}
           {weekDateIso && (
             <span className="text-gray-500 font-medium whitespace-nowrap tabular-nums" dir="ltr">
               {' '}({formatWeekDate(weekDateIso)})
@@ -144,32 +152,23 @@ export function ProductTicker({
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
-          {/* ✅ make viewport horizontally scrollable + draggable */}
           <div
             ref={viewportRef}
-            className={`overflow-x-auto overflow-y-hidden select-none ${
-              isDragging ? 'cursor-grabbing' : 'cursor-grab'
-            }`}
+            className={`overflow-x-auto overflow-y-hidden select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
             style={{
               WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none', // Firefox hide
+              scrollbarWidth: 'none',
+              touchAction: 'pan-y',
             }}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={stopDrag}
-            onMouseLeave={stopDrag}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={stopDrag}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={stopDrag}
             onDragStart={(e) => e.preventDefault()}
-            // hide scrollbar (webkit)
             onWheel={(e) => {
-              // optional: convert vertical wheel to horizontal scroll
               const el = viewportRef.current;
               if (!el) return;
-              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-                el.scrollLeft += e.deltaY;
-              }
+              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY;
             }}
           >
             <div className="ticker-track">
@@ -181,13 +180,12 @@ export function ProductTicker({
                   <div
                     key={`${it.id}-${idx}`}
                     onClick={() => {
-                      // ✅ prevent accidental click when dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
-                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition
-                      ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}
-                    `}
+                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${
+                      selectedId === it.id ? 'ring-2 ring-blue-500' : ''
+                    }`}
                   >
                     <span className="text-sm font-bold text-gray-800">{it.name}</span>
                     <div className="h-4 w-[1px] bg-gray-200" />
@@ -196,15 +194,16 @@ export function ProductTicker({
                       {above && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />}
                       {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                       {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
-                    <span
-                      dir="ltr"
-                      className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
-                        above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
-                      }`}
-                    >
-                      <span className="text-sm">{format2(it.price)}</span>
-                      <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
-                    </span>
+
+                      <span
+                        dir="ltr"
+                        className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
+                          above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
+                        }`}
+                      >
+                        <span className="text-sm">{format2(it.price)}</span>
+                        <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
+                      </span>
                     </div>
                   </div>
                 );
@@ -212,13 +211,11 @@ export function ProductTicker({
             </div>
           </div>
 
-          {/* fades */}
           <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10" />
         </div>
       </div>
 
-      {/* ✅ hide scrollbar for webkit */}
       <style>{`
         .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
