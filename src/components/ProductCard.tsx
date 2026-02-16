@@ -135,7 +135,7 @@ const prevBadge = badgeStyle(pctPrev);
           className={`text-4xl font-black mb-2 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
           style={{ color: colorValue }}
         >
-          ₪{weekPrice.toFixed(2)}
+          NIS{weekPrice.toFixed(2)}
         </div>
 
         {/* ✅ Excel-like badges */}
@@ -149,7 +149,7 @@ const prevBadge = badgeStyle(pctPrev);
               <span className={`${refBadge.text}`}>→</span>
             )}
             <span className={`${refBadge.text}`}>عن الاسترشادي: {formatSignedPercent(pctRef, 1)}</span>
-            <span className="text-gray-500 font-semibold">({formatSignedPercent(diffRef, 2).replace('%','')} ₪)</span>
+            <span className="text-gray-500 font-semibold">({formatSignedPercent(diffRef, 2).replace('%','')} NIS)</span>
           </div>
 
           <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-sm border ${prevBadge.bg} ${prevBadge.border}`}>
@@ -172,7 +172,7 @@ const prevBadge = badgeStyle(pctPrev);
       <div className="flex justify-between items-center text-sm text-gray-600 pt-3 border-t border-gray-100 text-right">
         <div>
           <span className="font-semibold">السعر الاسترشادي: </span>
-          <span className="font-bold">₪{product.reference_price.toFixed(2)}</span>
+          <span className="font-bold">NIS{product.reference_price.toFixed(2)}</span>
         </div>
         <div className="text-gray-500">الأسبوع {currentWeek}</div>
       </div>
