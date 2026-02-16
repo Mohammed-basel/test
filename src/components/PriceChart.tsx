@@ -85,11 +85,11 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
   const tooltipTitleSize = isMobile ? 12 : 14;
   const tooltipBodySize = isMobile ? 11 : 13;
 
-  const titleText = 'نسب التغير ومستويات الأسعار أسبوعيا للسلع الأساسية خلال شهر رمضان مقارنة بالأسعار الاسترشادية';
+  const titleText = 'نسب التغيّر ومستويات الأسعار أسبوعيا للسلع الأساسية خلال شهر رمضان مقارنة بالأسعار الاسترشادية';
   const barLabel = 'السعر الأسبوعي';
-  const lineLabel = 'التغير % عن الاسترشادي';
+  const lineLabel = 'التغيّر % عن الاسترشادي';
   const refLabel = 'السعر الاسترشادي';
-  const changeGreen = 'rgb(22, 163, 74)';
+  const refChange = '#000000';
   const axisColor = '#334155';
 
   const { labels, weeklyPrices, pctVsRef, ref, yBarLimits, yLineLimits } = useMemo(() => {
@@ -156,12 +156,12 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
       label: lineLabel,
       type: 'line',
       data: pctVsRef,
-      borderColor: changeGreen,
+      borderColor: refChange,
       backgroundColor: 'rgba(22,163,74,0.18)',
       borderWidth: 3,
       borderDash: [6, 4], // Added dashed style as requested
       pointRadius: 4,
-      pointBackgroundColor: changeGreen,
+      pointBackgroundColor: refChange,
       pointBorderColor: '#fff',
       pointBorderWidth: 2,
       tension: 0.3,
@@ -247,7 +247,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         max: yLineLimits.max,
         title: {
           display: true,
-          text: 'نسبة التغير %',
+          text: 'نسبة التغيّر %',
           font: { size: axisTitleFontSize, weight: 'bold' },
           color: axisColor,
         },
@@ -278,7 +278,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div className="flex justify-center gap-2">
           {(['all', 'price', 'change'] as const).map((mode) => {
-            const labelsMap = { all: 'الكل', price: 'السعر', change: 'التغير' };
+            const labelsMap = { all: 'الكل', price: 'السعر', change: 'التغيّر' };
             const active = viewMode === mode;
             return (
               <button
