@@ -338,8 +338,11 @@ URL.revokeObjectURL(url);
         adherencePercent={manualAdherence}
       />
 
-      <ProductTicker products={products} currentWeek={currentWeek} />
-
+        <ProductTicker
+          products={products}
+          currentWeek={currentWeek}
+          onSelectProduct={(id) => selectProduct(String(id), 'other')}
+        />
         <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
             <div className="flex-1">
