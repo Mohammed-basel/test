@@ -142,7 +142,7 @@ const adherenceLevel = adherence >= 70 ? 'good' : adherence >= 40 ? 'warn' : 'ba
 
             {/* Progress Bar */}
             <div className="mt-3">
-              <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+              <div className="w-40 md:w-44 h-2.5 rounded-full bg-gray-200 overflow-hidden ml-auto">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ease-out ${
                     adherenceLevel === 'good'
@@ -152,23 +152,19 @@ const adherenceLevel = adherence >= 70 ? 'good' : adherence >= 40 ? 'warn' : 'ba
                       : 'bg-red-500'
                   }`}
                   style={{ width: `${clamp(adherence, 0, 100)}%` }}
+                  role="progressbar"
                   aria-label="نسبة الالتزام"
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={clamp(adherence, 0, 100)}
-                  role="progressbar"
                 />
-              </div>
-
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>0%</span>
-                <span>100%</span>
               </div>
             </div>
 
             <p className="text-xs text-gray-500 mt-2">
               الأسبوع {currentWeek}
             </p>
+
           </div>
         </div>
 
