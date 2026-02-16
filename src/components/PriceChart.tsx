@@ -80,7 +80,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const legendFontSize = isMobile ? 11 : 14;
-  const tickFontSize = isMobile ? 10 : 14;
+  const tickFontSize = isMobile ? 9 : 13;
   const axisTitleFontSize = isMobile ? 12 : 16;
   const tooltipTitleSize = isMobile ? 12 : 14;
   const tooltipBodySize = isMobile ? 11 : 13;
