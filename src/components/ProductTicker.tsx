@@ -40,11 +40,13 @@ export function ProductTicker({
   currentWeek,
   maxItems = 25,
   onSelectProduct,
+  selectedId,
 }: {
   products: ProductWithPrices[];
   currentWeek: number;
   maxItems?: number;
   onSelectProduct?: (id: string | number) => void;
+  selectedId?: string | null;
 }) {
   const baseItems = useMemo(() => {
     return [...products]
