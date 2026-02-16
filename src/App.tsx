@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Download, Filter } from 'lucide-react';
 import { ProductCard } from './components/ProductCard';
 import { PriceChart } from './components/PriceChart';
@@ -20,6 +20,9 @@ function App() {
   const [currentWeek, setCurrentWeek] = useState<number>(1);
   const [maxWeek, setMaxWeek] = useState<number>(1);
   const [usingSampleData, setUsingSampleData] = useState(false);
+
+  // Mobile UX: after selecting from dropdown, auto-scroll to chart after a short delay (small screens only)
+  const chartScrollTimerRef = useRef<number | null>(null);
 
   // UX: keep the *default* (first-load) highlighted product visible without scrolling,
   // but do NOT reshuffle cards when the user makes selections.
@@ -134,13 +137,35 @@ const manualAdherence = adherenceByWeek[currentWeek] ?? 0;
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const selectProduct = (id: string | null) => {
+  const scrollToChart = () => {
+    const chartEl = document.getElementById('chart-section');
+    if (!chartEl) return;
+    chartEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const selectProduct = (id: string | null, source: 'dropdown' | 'card' | 'other' = 'other') => {
     // User-driven selection (dropdown/card) should not reshuffle the list.
     setHasUserSelected(true);
     setSelectedId(id);
+
+    // Cancel any pending chart auto-scroll when selection changes.
+    if (chartScrollTimerRef.current) {
+      window.clearTimeout(chartScrollTimerRef.current);
+      chartScrollTimerRef.current = null;
+    }
+
     if (id) {
       // Let React paint selection styles before scrolling.
       window.setTimeout(() => scrollToProduct(id), 50);
+
+      // Small screens only: after selecting (dropdown or card), scroll to chart after 3 seconds.
+      const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
+      if ((source === 'dropdown' || source === 'card') && isSmallScreen) {
+        chartScrollTimerRef.current = window.setTimeout(() => {
+          scrollToChart();
+          chartScrollTimerRef.current = null;
+        }, 3000);
+      }
     }
   };
 
@@ -323,8 +348,8 @@ URL.revokeObjectURL(url);
                 value={selectedId ?? ALL_VALUE}
                 onChange={(e) => {
                   const v = e.target.value;
-                  if (v === ALL_VALUE) selectProduct(null);
-                  else selectProduct(v);
+                  if (v === ALL_VALUE) selectProduct(null, 'dropdown');
+                  else selectProduct(v, 'dropdown');
                 }}
                 className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-600 focus:outline-none transition-colors"
               >
@@ -411,7 +436,7 @@ URL.revokeObjectURL(url);
                     product={product}
                     isSelected={selectedId === product.id}
                     isDimmed={!!selectedId && selectedId !== product.id}
-                    onToggle={() => selectProduct(product.id)}
+                    onToggle={() => selectProduct(product.id, 'card')}
                     isHighestIncrease={maxIncrease?.product.id === product.id}
                     isLowestDecrease={maxDecrease?.product.id === product.id}
                     currentWeek={currentWeek}
@@ -421,7 +446,7 @@ URL.revokeObjectURL(url);
             </div>
           </div>
 
-          <div>
+          <div id="chart-section">
             {selectedProduct ? (
               <PriceChart products={[selectedProduct]} currentWeek={currentWeek} />
             ) : (
