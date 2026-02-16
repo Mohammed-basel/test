@@ -164,7 +164,7 @@ const manualAdherence = adherenceByWeek[currentWeek] ?? 0;
         chartScrollTimerRef.current = window.setTimeout(() => {
           scrollToChart();
           chartScrollTimerRef.current = null;
-        }, 3000);
+        }, 1500);
       }
     }
   };
