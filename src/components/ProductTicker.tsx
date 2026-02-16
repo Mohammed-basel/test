@@ -80,11 +80,18 @@ export function ProductTicker({
   if (!baseItems.length) return null;
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
-      {/* ✅ week + date */}
-      <div className="flex items-center justify-between" dir="rtl">
-        <h3 className="text-base font-extrabold text-gray-900">{weekTitle}</h3>
+  <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
+    {/* Week title styled like filter */}
+    <div className="flex items-center justify-end mb-2" dir="rtl">
+      <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
+        الأسبوع {currentWeek}
+        {weekDateIso && (
+          <span className="text-gray-500 font-medium">
+            {' '}({formatWeekDate(weekDateIso)})
+          </span>
+        )}
       </div>
+    </div>
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
