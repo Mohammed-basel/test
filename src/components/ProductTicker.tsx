@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
 interface PriceEntry {
@@ -73,96 +73,70 @@ export function ProductTicker({
     return undefined;
   }, [products, currentWeek]);
 
-  // ✅ Drag-to-scroll (stable) using Pointer Events + window listeners
+  const trackItems = [...baseItems, ...baseItems];
+  if (!baseItems.length) return null;
+
+  // ✅ Drag-to-scroll state
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({
-    pointerId: -1 as number,
     startX: 0,
     startScrollLeft: 0,
     moved: false,
   });
 
-  const stopDrag = () => {
-    dragState.current.pointerId = -1;
-    setIsDragging(false);
-  };
-
-  useEffect(() => {
-    const onWinUp = () => stopDrag();
-    const onWinCancel = () => stopDrag();
-    window.addEventListener('pointerup', onWinUp);
-    window.addEventListener('pointercancel', onWinCancel);
-    window.addEventListener('blur', onWinUp);
-    return () => {
-      window.removeEventListener('pointerup', onWinUp);
-      window.removeEventListener('pointercancel', onWinCancel);
-      window.removeEventListener('blur', onWinUp);
-    };
-  }, []);
-
-  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onMouseDown = (e: React.MouseEvent) => {
     const el = viewportRef.current;
     if (!el) return;
-    if (e.pointerType === 'mouse' && e.button !== 0) return;
-
     setIsDragging(true);
-    dragState.current.pointerId = e.pointerId;
-    dragState.current.startX = e.clientX;
+    dragState.current.startX = e.pageX;
     dragState.current.startScrollLeft = el.scrollLeft;
     dragState.current.moved = false;
-
-    (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
-    e.preventDefault();
   };
 
-  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+  const onMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    if (dragState.current.pointerId !== e.pointerId) return;
-
     const el = viewportRef.current;
     if (!el) return;
 
-    const dx = e.clientX - dragState.current.startX;
+    const dx = e.pageX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
 
-    // feels natural in RTL
+    // عكس الإشارة يعطي احساس طبيعي داخل RTL
     el.scrollLeft = dragState.current.startScrollLeft - dx;
-    e.preventDefault();
   };
 
-  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (dragState.current.pointerId === e.pointerId) stopDrag();
-  };
+  const stopDrag = () => setIsDragging(false);
 
-  const trackItems = useMemo(() => [...baseItems, ...baseItems], [baseItems]);
-  const hasItems = baseItems.length > 0;
-
-  // ✅ Fix: start aligned to the beginning of a full item (no cut)
-  useLayoutEffect(() => {
+  const onTouchStart = (e: React.TouchEvent) => {
     const el = viewportRef.current;
-    if (!el || !hasItems) return;
+    if (!el) return;
+    setIsDragging(true);
+    dragState.current.startX = e.touches[0].pageX;
+    dragState.current.startScrollLeft = el.scrollLeft;
+    dragState.current.moved = false;
+  };
 
-    // scroll first visible item fully into view
-    // Works well in RTL across browsers
-    requestAnimationFrame(() => {
-      const first = el.querySelector<HTMLElement>('[data-ticker-item="first"]');
-      first?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' });
-    });
-  }, [hasItems, currentWeek, maxItems]);
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+    const el = viewportRef.current;
+    if (!el) return;
 
-  if (!hasItems) return null;
+    const dx = e.touches[0].pageX - dragState.current.startX;
+    if (Math.abs(dx) > 3) dragState.current.moved = true;
+
+    el.scrollLeft = dragState.current.startScrollLeft - dx;
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
       {/* Week title */}
       <div className="flex items-center justify-start mb-2" dir="rtl">
         <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
-          متوسط أسعار الأسبوع {currentWeek}
+          الأسبوع {currentWeek}
           {weekDateIso && (
             <span className="text-gray-500 font-medium whitespace-nowrap tabular-nums" dir="ltr">
-              {' '}
-              ({formatWeekDate(weekDateIso)})
+              {' '}({formatWeekDate(weekDateIso)})
             </span>
           )}
         </div>
@@ -170,27 +144,32 @@ export function ProductTicker({
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
-          {/* ✅ scrollable + draggable + snap (prevents starting mid-card) */}
+          {/* ✅ make viewport horizontally scrollable + draggable */}
           <div
             ref={viewportRef}
-            className={`overflow-x-auto overflow-y-hidden select-none snap-x snap-mandatory ${
+            className={`overflow-x-auto overflow-y-hidden select-none ${
               isDragging ? 'cursor-grabbing' : 'cursor-grab'
             }`}
             style={{
               WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none',
-              touchAction: 'pan-y',
-              scrollPaddingInlineStart: '12px',
+              scrollbarWidth: 'none', // Firefox hide
             }}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerCancel={stopDrag}
+            onMouseDown={onMouseDown}
+            onMouseMove={onMouseMove}
+            onMouseUp={stopDrag}
+            onMouseLeave={stopDrag}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={stopDrag}
             onDragStart={(e) => e.preventDefault()}
+            // hide scrollbar (webkit)
             onWheel={(e) => {
+              // optional: convert vertical wheel to horizontal scroll
               const el = viewportRef.current;
               if (!el) return;
-              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) el.scrollLeft += e.deltaY;
+              if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                el.scrollLeft += e.deltaY;
+              }
             }}
           >
             <div className="ticker-track">
@@ -201,15 +180,14 @@ export function ProductTicker({
                 return (
                   <div
                     key={`${it.id}-${idx}`}
-                    data-ticker-item={idx === 0 ? 'first' : undefined}
                     onClick={() => {
-                      // ✅ keep old clickable behavior, avoid click while dragging
+                      // ✅ prevent accidental click when dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
-                    className={`inline-flex snap-start items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${
-                      selectedId === it.id ? 'ring-2 ring-blue-500' : ''
-                    }`}
+                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition
+                      ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}
+                    `}
                   >
                     <span className="text-sm font-bold text-gray-800">{it.name}</span>
                     <div className="h-4 w-[1px] bg-gray-200" />
@@ -219,15 +197,12 @@ export function ProductTicker({
                       {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                       {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
 
-                      {/* ✅ currency formatting consistent (NIS smaller + to the right) */}
                       <span
-                        dir="ltr"
-                        className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
+                        className={`text-sm font-black ${
                           above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
                         }`}
                       >
-                        <span className="text-sm">{format2(it.price)}</span>
-                        <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
+                        {format2(it.price) + ' NIS'}
                       </span>
                     </div>
                   </div>
@@ -242,7 +217,7 @@ export function ProductTicker({
         </div>
       </div>
 
-      {/* hide scrollbar for webkit */}
+      {/* ✅ hide scrollbar for webkit */}
       <style>{`
         .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
