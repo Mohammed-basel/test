@@ -71,10 +71,10 @@ export function ProductTicker({
     return undefined;
   }, [products, currentWeek]);
 
-  const trackItems = [...baseItems, ...baseItems];
+  const trackItems = useMemo(() => [...baseItems, ...baseItems], [baseItems]);
   if (!baseItems.length) return null;
 
-  // ✅ Drag-to-scroll state
+  // Drag-to-scroll
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const dragState = useRef({
@@ -96,16 +96,13 @@ export function ProductTicker({
     if (!isDragging) return;
     const el = viewportRef.current;
     if (!el) return;
-    
+
     e.preventDefault();
     const dx = e.pageX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
-    
-    // ✅ Use requestAnimationFrame for smooth scrolling
+
     requestAnimationFrame(() => {
-      if (el) {
-        el.scrollLeft = dragState.current.startScrollLeft - dx;
-      }
+      el.scrollLeft = dragState.current.startScrollLeft - dx;
     });
   };
 
@@ -124,41 +121,35 @@ export function ProductTicker({
     if (!isDragging) return;
     const el = viewportRef.current;
     if (!el) return;
-    
+
     const dx = e.touches[0].pageX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
-    
-    // ✅ Use requestAnimationFrame for smooth scrolling
+
     requestAnimationFrame(() => {
-      if (el) {
-        el.scrollLeft = dragState.current.startScrollLeft - dx;
-      }
+      el.scrollLeft = dragState.current.startScrollLeft - dx;
     });
   };
 
   return (
-<div className="flex items-center justify-start mb-2" dir="rtl">
-  <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
-    متوسط أسعار الأسبوع {currentWeek}
-    {weekDateIso && (
-      <span
-        className="text-gray-500 font-medium whitespace-nowrap tabular-nums"
-        dir="ltr"
-      >
-        {' '}({formatWeekDate(weekDateIso)})
-      </span>
-    )}
-  </div>
-</div>
+    <div dir="rtl">
+      {/* Header */}
+      <div className="flex items-center justify-start mb-2" dir="rtl">
+        <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
+          متوسط أسعار الأسبوع {currentWeek}
+          {weekDateIso && (
+            <span className="text-gray-500 font-medium whitespace-nowrap tabular-nums" dir="ltr">
+              {' '}({formatWeekDate(weekDateIso)})
+            </span>
+          )}
+        </div>
+      </div>
 
-
+      {/* Ticker */}
       <div
         className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm"
         dir="rtl"
       >
-        {/* ✅ Add is-dragging class when dragging to disable animation */}
         <div className={`ticker-viewport relative ${isDragging ? 'is-dragging' : ''}`}>
-          {/* ✅ make viewport horizontally scrollable + draggable */}
           <div
             ref={viewportRef}
             className={`overflow-x-auto overflow-y-hidden select-none ${
@@ -166,7 +157,7 @@ export function ProductTicker({
             }`}
             style={{
               WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none', // Firefox hide
+              scrollbarWidth: 'none',
             }}
             onMouseDown={onMouseDown}
             onMouseMove={onMouseMove}
@@ -175,10 +166,9 @@ export function ProductTicker({
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={stopDrag}
+            onTouchCancel={stopDrag}
             onDragStart={(e) => e.preventDefault()}
-            // hide scrollbar (webkit)
             onWheel={(e) => {
-              // optional: convert vertical wheel to horizontal scroll
               const el = viewportRef.current;
               if (!el) return;
               if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -190,32 +180,35 @@ export function ProductTicker({
               {trackItems.map((it, idx) => {
                 const above = it.hasRef && it.price > it.ref + 0.0001;
                 const under = it.hasRef && it.price < it.ref - 0.0001;
+
                 return (
                   <div
                     key={`${it.id}-${idx}`}
                     onClick={() => {
-                      // ✅ prevent accidental click when dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
-                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}`}
+                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${
+                      selectedId === it.id ? 'ring-2 ring-blue-500' : ''
+                    }`}
                   >
                     <span className="text-sm font-bold text-gray-800">{it.name}</span>
                     <div className="h-4 w-[1px] bg-gray-200" />
+
                     <div className="flex items-center gap-1 flex-row-reverse">
                       {above && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />}
                       {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                       {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
-                    <span
-                      dir="ltr"
-                      className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
-                        above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
-                      }`}
-                    >
-                      <span className="text-sm">{format2(it.price)}</span>
-                      <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
-                    </span>
 
+                      <span
+                        dir="ltr"
+                        className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
+                          above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
+                        }`}
+                      >
+                        <span className="text-sm">{format2(it.price)}</span>
+                        <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
+                      </span>
                     </div>
                   </div>
                 );
@@ -229,11 +222,9 @@ export function ProductTicker({
         </div>
       </div>
 
-      {/* ✅ hide scrollbar for webkit */}
+      {/* hide scrollbar for webkit */}
       <style>{`
-        .ticker-viewport > div::-webkit-scrollbar {
-          display: none;
-        }
+        .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
