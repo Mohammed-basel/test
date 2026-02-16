@@ -133,7 +133,7 @@ export function ProductTicker({
       {/* Week title */}
       <div className="flex items-center justify-start mb-2" dir="rtl">
         <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
-          الأسبوع {currentWeek}
+         متوسط الأسبوع {currentWeek}
           {weekDateIso && (
             <span className="text-gray-500 font-medium whitespace-nowrap tabular-nums" dir="ltr">
               {' '}({formatWeekDate(weekDateIso)})
@@ -196,14 +196,15 @@ export function ProductTicker({
                       {above && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />}
                       {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                       {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
-
-                      <span
-                        className={`text-sm font-black ${
-                          above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
-                        }`}
-                      >
-                        {format2(it.price) + ' NIS'}
-                      </span>
+                    <span
+                      dir="ltr"
+                      className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
+                        above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
+                      }`}
+                    >
+                      <span className="text-sm">{format2(it.price)}</span>
+                      <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
+                    </span>
                     </div>
                   </div>
                 );
