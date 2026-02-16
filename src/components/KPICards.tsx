@@ -62,26 +62,16 @@ export function KPICards({
 }: KPICardsProps) {
   const [openMethodology, setOpenMethodology] = useState(false);
 
-  const computedAdherence = useMemo(() => {
-    // If caller passes adherencePercent (like 29), use it.
-    if (typeof adherencePercent === 'number') return clamp(adherencePercent, 0, 100);
+const computedAdherence = useMemo(() => {
+  if (typeof adherencePercent === 'number') return clamp(adherencePercent, 0, 100);
 
-    // Otherwise compute: % of products where currentWeek price <= reference_price
-    if (!products?.length) return 0;
+  return null;
+}, [adherencePercent]);
 
-    const count = products.reduce((acc, p) => {
-      const price = p.prices.find(x => x.week_number === currentWeek)?.price ?? 0;
-      const ref = p.reference_price ?? 0;
-      if (ref <= 0) return acc;
-      return price <= ref ? acc + 1 : acc;
-    }, 0);
-
-    return Math.round((count / products.length) * 100);
-  }, [adherencePercent, products, currentWeek]);
 
   const adherence = computedAdherence;
-  const adherenceLevel =
-    adherence >= 70 ? 'good' : adherence >= 40 ? 'warn' : 'bad';
+const adherenceLevel =
+  adherence === null ? 'bad' : adherence >= 70 ? 'good' : adherence >= 40 ? 'warn' : 'bad';
 
   const adherenceStyles =
     adherenceLevel === 'good'
@@ -124,7 +114,7 @@ export function KPICards({
               نسبة الالتزام بالسعر الاسترشادي
             </h3>
             <p className={`text-3xl font-black ${adherenceStyles.value}`}>
-              {adherence}%
+              {adherence === null ? '—' : `${adherence}%`}
             </p>
             <p className={`text-sm font-semibold mt-1 ${adherenceStyles.text}`}>
               {adherenceStyles.hint}
