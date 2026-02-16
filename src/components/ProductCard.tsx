@@ -102,7 +102,7 @@ export function ProductCard({
             <img
               src={iconSrc}
               alt=""
-              className={`w-14 h-14 object-contain transition-transform duration-300 ${isSelected ? 'scale-110' : ''}`}
+              className={`w-14 h-14 object-contain transition-transform duration-300 ${isSelected ? 'scale-100' : ''}`}
               onError={handleIconError}
               draggable={false}
             />
