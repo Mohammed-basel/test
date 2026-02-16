@@ -86,7 +86,7 @@ export function ProductTicker({
       <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
         الأسبوع {currentWeek}
         {weekDateIso && (
-          <span className="text-gray-500 font-medium">
+          <span className="text-gray-500 font-medium" dir="ltr">
             {' '}({formatWeekDate(weekDateIso)})
           </span>
         )}
