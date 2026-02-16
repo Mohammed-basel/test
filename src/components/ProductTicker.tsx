@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
 interface PriceEntry {
@@ -76,29 +76,84 @@ export function ProductTicker({
   const trackItems = [...baseItems, ...baseItems];
   if (!baseItems.length) return null;
 
-  // ✅ Drag-to-scroll state
+  // ✅ Drag-to-scroll state (RTL-safe, no stuck)
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Detect RTL scrollLeft behavior: 'default' | 'reverse' | 'negative'
+  const rtlTypeRef = useRef<'default' | 'reverse' | 'negative'>('default');
+
   const dragState = useRef({
     startX: 0,
-    startScrollLeft: 0,
+    startLogical: 0,
     moved: false,
-    pointerId: -1,
     dragging: false,
+    pointerId: -1,
   });
 
   const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+  const detectRTLType = () => {
+    const outer = document.createElement('div');
+    outer.style.width = '10px';
+    outer.style.height = '10px';
+    outer.style.overflow = 'scroll';
+    outer.style.direction = 'rtl';
+    outer.style.position = 'absolute';
+    outer.style.top = '-9999px';
+
+    const inner = document.createElement('div');
+    inner.style.width = '20px';
+    inner.style.height = '10px';
+    outer.appendChild(inner);
+    document.body.appendChild(outer);
+
+    outer.scrollLeft = 0;
+
+    if (outer.scrollLeft > 0) {
+      rtlTypeRef.current = 'default';
+    } else {
+      outer.scrollLeft = 1;
+      rtlTypeRef.current = outer.scrollLeft === 0 ? 'negative' : 'reverse';
+    }
+
+    document.body.removeChild(outer);
+  };
+
+  useEffect(() => {
+    detectRTLType();
+  }, []);
+
+  // logical: 0 = RIGHT edge (RTL start), max = LEFT edge
+  const getLogicalScroll = (el: HTMLDivElement) => {
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 0) return 0;
+
+    const t = rtlTypeRef.current;
+    if (t === 'negative') return -el.scrollLeft; // right: 0, left: -max
+    if (t === 'reverse') return max - el.scrollLeft; // right: max, left: 0
+    return el.scrollLeft; // right: 0, left: max
+  };
+
+  const setLogicalScroll = (el: HTMLDivElement, logical: number) => {
+    const max = el.scrollWidth - el.clientWidth;
+    const v = clamp(logical, 0, Math.max(0, max));
+
+    const t = rtlTypeRef.current;
+    if (t === 'negative') el.scrollLeft = -v;
+    else if (t === 'reverse') el.scrollLeft = max - v;
+    else el.scrollLeft = v;
+  };
 
   const startDrag = (clientX: number, pointerId: number) => {
     const el = viewportRef.current;
     if (!el) return;
 
     dragState.current.startX = clientX;
-    dragState.current.startScrollLeft = el.scrollLeft;
+    dragState.current.startLogical = getLogicalScroll(el);
     dragState.current.moved = false;
-    dragState.current.pointerId = pointerId;
     dragState.current.dragging = true;
+    dragState.current.pointerId = pointerId;
     setIsDragging(true);
   };
 
@@ -110,11 +165,9 @@ export function ProductTicker({
     const dx = clientX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
 
-    // keep your “natural RTL feel”
-    const next = dragState.current.startScrollLeft - dx;
-
-    const maxScroll = el.scrollWidth - el.clientWidth;
-    el.scrollLeft = clamp(next, 0, Math.max(0, maxScroll));
+    // same feel you had:
+    const nextLogical = dragState.current.startLogical - dx;
+    setLogicalScroll(el, nextLogical);
   };
 
   const endDrag = () => {
@@ -122,21 +175,17 @@ export function ProductTicker({
     setIsDragging(false);
   };
 
-  // ✅ Pointer Events (works for mouse + touch) + capture (prevents “stuck”)
+  // ✅ Pointer Events = mouse + touch + capture (prevents getting "stuck")
   const onPointerDown = (e: React.PointerEvent) => {
     const el = viewportRef.current;
     if (!el) return;
-
-    // only left-click for mouse
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-    // capture so moves keep firing even if pointer leaves the element
+    e.preventDefault();
+
     try {
       el.setPointerCapture(e.pointerId);
     } catch {}
-
-    // prevent text selection / page scroll while dragging
-    e.preventDefault();
 
     startDrag(e.clientX, e.pointerId);
   };
@@ -183,6 +232,7 @@ export function ProductTicker({
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
+          {/* ✅ viewport horizontally scrollable + draggable (RTL-safe) */}
           <div
             ref={viewportRef}
             className={`overflow-x-auto overflow-y-hidden select-none ${
@@ -190,12 +240,10 @@ export function ProductTicker({
             }`}
             style={{
               WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none',
-
-              // ✅ IMPORTANT: stable scrollLeft everywhere
-              direction: 'ltr',
-              touchAction: 'pan-y', // allow vertical page scroll, but we handle horizontal drag
+              scrollbarWidth: 'none', // Firefox hide
+              touchAction: 'pan-y', // allow page vertical scroll, we handle horizontal drag
             }}
+            dir="rtl"
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -209,8 +257,7 @@ export function ProductTicker({
               }
             }}
           >
-            {/* ✅ content stays RTL visually */}
-            <div className="ticker-track" style={{ direction: 'rtl' }}>
+            <div className="ticker-track">
               {trackItems.map((it, idx) => {
                 const above = it.hasRef && it.price > it.ref + 0.0001;
                 const under = it.hasRef && it.price < it.ref - 0.0001;
@@ -219,6 +266,7 @@ export function ProductTicker({
                   <div
                     key={`${it.id}-${idx}`}
                     onClick={() => {
+                      // ✅ prevent accidental click when dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
@@ -254,6 +302,7 @@ export function ProductTicker({
         </div>
       </div>
 
+      {/* ✅ hide scrollbar for webkit */}
       <style>{`
         .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
