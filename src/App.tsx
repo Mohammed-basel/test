@@ -410,7 +410,7 @@ URL.revokeObjectURL(url);
           </div>
 
 <div className="mt-3 text-sm text-gray-600 flex items-center gap-2 whitespace-nowrap leading-none">
-  <span className="font-semibold">عدد المنتجات:</span>
+  <span className="font-semibold">عدد السلع:</span>
   <span className="font-bold text-blue-600">{filteredProducts.length}</span>
 
   <span className="mx-2 text-gray-300">|</span>
