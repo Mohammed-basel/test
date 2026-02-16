@@ -17,7 +17,13 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 /* Keyframes (best outside layers) */
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.2; transform: scaleX(1); }
