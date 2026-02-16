@@ -1,12 +1,10 @@
 import React, { useMemo } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
-/**
- * TYPES
- */
 interface PriceEntry {
   week_number: number;
   price: number | string;
+  week_date?: string; // ✅ add this
 }
 
 export interface ProductWithPrices {
@@ -17,9 +15,6 @@ export interface ProductWithPrices {
   prices: PriceEntry[];
 }
 
-/**
- * HELPER FUNCTIONS
- */
 function getLatestPriceUpToWeek(p: ProductWithPrices, week: number): number {
   if (!p.prices || p.prices.length === 0) return 0;
 
@@ -33,6 +28,14 @@ function getLatestPriceUpToWeek(p: ProductWithPrices, week: number): number {
 function format2(n: number): string {
   if (!Number.isFinite(n)) return '0.00';
   return n.toFixed(2);
+}
+
+function formatWeekDate(iso?: string) {
+  if (!iso) return '';
+  // expects "YYYY-MM-DD"
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
 }
 
 export function ProductTicker({
@@ -62,28 +65,28 @@ export function ProductTicker({
       .slice(0, maxItems);
   }, [products, currentWeek, maxItems]);
 
-  const trackItems = [...baseItems, ...baseItems];
+  // ✅ find the date for currentWeek from any product that has it
+  const weekDateIso = useMemo(() => {
+    for (const p of products) {
+      const row = p.prices?.find((x) => x.week_number === currentWeek && x.week_date);
+      if (row?.week_date) return row.week_date;
+    }
+    return undefined;
+  }, [products, currentWeek]);
 
+  const weekTitle = `الأسبوع ${currentWeek}${weekDateIso ? ` — ${formatWeekDate(weekDateIso)}` : ''}`;
+
+  const trackItems = [...baseItems, ...baseItems];
   if (!baseItems.length) return null;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
-      {/* ✅ Week title above the slider */}
+      {/* ✅ week + date */}
       <div className="flex items-center justify-between" dir="rtl">
-        <h3 className="text-base font-extrabold text-gray-900">
-          الأسبوع {currentWeek}
-        </h3>
-
-        {/* optional: small hint */}
-        <span className="text-xs font-semibold text-gray-500">
-          اضغط على المنتج لعرض التفاصيل
-        </span>
+        <h3 className="text-base font-extrabold text-gray-900">{weekTitle}</h3>
       </div>
 
-      <div
-        className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm"
-        dir="rtl"
-      >
+      <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
           <div className="ticker-track">
             {trackItems.map((it, idx) => {
@@ -98,30 +101,17 @@ export function ProductTicker({
                     ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}
                   `}
                 >
-                  <span className="text-sm font-bold text-gray-800">
-                    {it.name}
-                  </span>
-
+                  <span className="text-sm font-bold text-gray-800">{it.name}</span>
                   <div className="h-4 w-[1px] bg-gray-200" />
 
                   <div className="flex items-center gap-1 flex-row-reverse">
-                    {above && (
-                      <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />
-                    )}
-                    {under && (
-                      <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />
-                    )}
-                    {!above && !under && (
-                      <Minus className="w-3.5 h-3.5 text-gray-400" />
-                    )}
+                    {above && <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />}
+                    {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
+                    {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
 
                     <span
                       className={`text-sm font-black ${
-                        above
-                          ? 'text-red-700'
-                          : under
-                          ? 'text-green-700'
-                          : 'text-gray-600'
+                        above ? 'text-red-700' : under ? 'text-green-700' : 'text-gray-600'
                       }`}
                     >
                       {format2(it.price) + ' NIS'}
