@@ -53,20 +53,20 @@ export function ProductCard({
 
   // Icons after build (no rebuild needed):
   // Put files in /public/icons/ (copied to dist/icons/):
-  // - /icons/<productId>.svg  (preferred)
-  // - /icons/<productId>.png  (fallback)
-  const [iconSrc, setIconSrc] = useState<string>(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.svg`);
+  // - /icons/<productId>.png  (preferred)
+  // - /icons/<productId>.svg  (fallback)
+  const [iconSrc, setIconSrc] = useState<string>(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`);
   const [iconBroken, setIconBroken] = useState(false);
 
   useEffect(() => {
-    setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.svg`);
+    setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`);
     setIconBroken(false);
   }, [product.id]);
 
   const handleIconError = () => {
-    // Try PNG if SVG is missing, then fallback to FontAwesome.
-    if (iconSrc.endsWith('.svg')) {
-      setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`);
+    // Try SVG only if PNG is missing, then fallback to FontAwesome.
+    if (iconSrc.endsWith('.png')) {
+      setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.svg`);
       return;
     }
     setIconBroken(true);
