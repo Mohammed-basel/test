@@ -318,7 +318,11 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
       <div className="flex justify-center gap-6 pt-2 border-t border-gray-100 text-xs sm:text-sm text-gray-600">
         <span>
-          السعر الاسترشادي: <strong className="text-gray-800">NIS{ref.toFixed(2)}</strong>
+السعر الاسترشادي:{' '}
+<strong className="inline-flex items-baseline text-gray-800 tabular-nums">
+  <span>{ref.toFixed(2)}</span>
+  <span className="ml-[2px] text-[11px] font-semibold">NIS</span>
+</strong>
         </span>
         <span>
           الأسبوع المعروض: <strong className="text-blue-600">الأسبوع {currentWeek}</strong>
