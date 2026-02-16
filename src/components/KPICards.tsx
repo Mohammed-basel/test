@@ -120,50 +120,51 @@ const adherenceLevel = adherence >= 70 ? 'good' : adherence >= 40 ? 'warn' : 'ba
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
-        {/* Card 3: Adherence */}
-        <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-4 hover:shadow-xl transition-shadow">
-          <div className={`${adherenceStyles.ring} rounded-full p-4 flex-shrink-0`}>
-            {adherenceStyles.icon}
-          </div>
+  <div className="bg-white rounded-xl shadow-lg p-6 flex items-center gap-4 hover:shadow-xl transition-shadow">
+    <div className={`${adherenceStyles.ring} rounded-full p-4 flex-shrink-0`}>
+      {adherenceStyles.icon}
+    </div>
 
-          <div className="text-right flex-1 min-w-0">
-            <h3 className="text-gray-700 font-bold text-base mb-1">
-              نسبة الالتزام بالسعر الاسترشادي
-            </h3>
+    <div className="text-right flex-1 min-w-0">
+      <h3 className="text-gray-700 font-bold text-base mb-1">
+        نسبة الالتزام بالسعر الاسترشادي
+      </h3>
 
-            <div className="flex items-end justify-between gap-3">
-              <p className={`text-3xl font-black ${adherenceStyles.value}`}>
-                {adherence}%
-              </p>
-              <p className={`text-sm font-semibold ${adherenceStyles.text}`}>
-                {adherenceStyles.hint}
-              </p>
-            </div>
+      <div className="flex items-end justify-between gap-3">
+        <p className={`text-3xl font-black ${adherenceStyles.value}`}>
+          {adherence}%
+        </p>
+        <p className={`text-sm font-semibold ${adherenceStyles.text}`}>
+          {adherenceStyles.hint}
+        </p>
+      </div>
 
-            {/* Progress Bar */}
-            <div className="mt-3">
-              <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-700 ease-out ${
-                    adherenceLevel === 'good'
-                      ? 'bg-green-500'
-                      : adherenceLevel === 'warn'
-                      ? 'bg-amber-500'
-                      : 'bg-red-500'
-                  }`}
-                  style={{ width: `${clamp(adherence, 0, 100)}%` }}
-                  aria-label="نسبة الالتزام"
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={clamp(adherence, 0, 100)}
-                  role="progressbar"
-                />
-              </div>
-            <p className="text-xs text-gray-500 mt-2">
-              الأسبوع {currentWeek}
-            </p>
-          </div>
+      {/* Progress Bar */}
+      <div className="mt-3">
+        <div className="w-full h-3 rounded-full bg-gray-200 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-700 ease-out ${
+              adherenceLevel === 'good'
+                ? 'bg-green-500'
+                : adherenceLevel === 'warn'
+                ? 'bg-amber-500'
+                : 'bg-red-500'
+            }`}
+            style={{ width: `${clamp(adherence, 0, 100)}%` }}
+            aria-label="نسبة الالتزام"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={clamp(adherence, 0, 100)}
+            role="progressbar"
+          />
         </div>
+      </div>
+
+      <p className="text-xs text-gray-500 mt-2">
+        الأسبوع {currentWeek}
+      </p>
+    </div>
+  </div>
 
 
         {/* Card 1: Highest increase */}
