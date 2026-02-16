@@ -79,53 +79,92 @@ export function ProductTicker({
   // ✅ Drag-to-scroll state
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+
   const dragState = useRef({
     startX: 0,
     startScrollLeft: 0,
     moved: false,
+    pointerId: -1,
+    dragging: false,
   });
 
-  const onMouseDown = (e: React.MouseEvent) => {
+  const clamp = (n: number, min: number, max: number) => Math.max(min, Math.min(max, n));
+
+  const startDrag = (clientX: number, pointerId: number) => {
     const el = viewportRef.current;
     if (!el) return;
-    setIsDragging(true);
-    dragState.current.startX = e.pageX;
+
+    dragState.current.startX = clientX;
     dragState.current.startScrollLeft = el.scrollLeft;
     dragState.current.moved = false;
-  };
-
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const el = viewportRef.current;
-    if (!el) return;
-
-    const dx = e.pageX - dragState.current.startX;
-    if (Math.abs(dx) > 3) dragState.current.moved = true;
-
-    // عكس الإشارة يعطي احساس طبيعي داخل RTL
-    el.scrollLeft = dragState.current.startScrollLeft - dx;
-  };
-
-  const stopDrag = () => setIsDragging(false);
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    const el = viewportRef.current;
-    if (!el) return;
+    dragState.current.pointerId = pointerId;
+    dragState.current.dragging = true;
     setIsDragging(true);
-    dragState.current.startX = e.touches[0].pageX;
-    dragState.current.startScrollLeft = el.scrollLeft;
-    dragState.current.moved = false;
   };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
+  const moveDrag = (clientX: number) => {
+    const el = viewportRef.current;
+    if (!el) return;
+    if (!dragState.current.dragging) return;
+
+    const dx = clientX - dragState.current.startX;
+    if (Math.abs(dx) > 3) dragState.current.moved = true;
+
+    // keep your “natural RTL feel”
+    const next = dragState.current.startScrollLeft - dx;
+
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    el.scrollLeft = clamp(next, 0, Math.max(0, maxScroll));
+  };
+
+  const endDrag = () => {
+    dragState.current.dragging = false;
+    setIsDragging(false);
+  };
+
+  // ✅ Pointer Events (works for mouse + touch) + capture (prevents “stuck”)
+  const onPointerDown = (e: React.PointerEvent) => {
     const el = viewportRef.current;
     if (!el) return;
 
-    const dx = e.touches[0].pageX - dragState.current.startX;
-    if (Math.abs(dx) > 3) dragState.current.moved = true;
+    // only left-click for mouse
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-    el.scrollLeft = dragState.current.startScrollLeft - dx;
+    // capture so moves keep firing even if pointer leaves the element
+    try {
+      el.setPointerCapture(e.pointerId);
+    } catch {}
+
+    // prevent text selection / page scroll while dragging
+    e.preventDefault();
+
+    startDrag(e.clientX, e.pointerId);
+  };
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!dragState.current.dragging) return;
+    e.preventDefault();
+    moveDrag(e.clientX);
+  };
+
+  const onPointerUp = (e: React.PointerEvent) => {
+    const el = viewportRef.current;
+    if (el) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+    endDrag();
+  };
+
+  const onPointerCancel = (e: React.PointerEvent) => {
+    const el = viewportRef.current;
+    if (el) {
+      try {
+        el.releasePointerCapture(e.pointerId);
+      } catch {}
+    }
+    endDrag();
   };
 
   return (
@@ -144,7 +183,6 @@ export function ProductTicker({
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
-          {/* ✅ make viewport horizontally scrollable + draggable */}
           <div
             ref={viewportRef}
             className={`overflow-x-auto overflow-y-hidden select-none ${
@@ -152,19 +190,18 @@ export function ProductTicker({
             }`}
             style={{
               WebkitOverflowScrolling: 'touch',
-              scrollbarWidth: 'none', // Firefox hide
+              scrollbarWidth: 'none',
+
+              // ✅ IMPORTANT: stable scrollLeft everywhere
+              direction: 'ltr',
+              touchAction: 'pan-y', // allow vertical page scroll, but we handle horizontal drag
             }}
-            onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={stopDrag}
-            onMouseLeave={stopDrag}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={stopDrag}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerCancel}
             onDragStart={(e) => e.preventDefault()}
-            // hide scrollbar (webkit)
             onWheel={(e) => {
-              // optional: convert vertical wheel to horizontal scroll
               const el = viewportRef.current;
               if (!el) return;
               if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -172,7 +209,8 @@ export function ProductTicker({
               }
             }}
           >
-            <div className="ticker-track">
+            {/* ✅ content stays RTL visually */}
+            <div className="ticker-track" style={{ direction: 'rtl' }}>
               {trackItems.map((it, idx) => {
                 const above = it.hasRef && it.price > it.ref + 0.0001;
                 const under = it.hasRef && it.price < it.ref - 0.0001;
@@ -181,7 +219,6 @@ export function ProductTicker({
                   <div
                     key={`${it.id}-${idx}`}
                     onClick={() => {
-                      // ✅ prevent accidental click when dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
@@ -217,7 +254,6 @@ export function ProductTicker({
         </div>
       </div>
 
-      {/* ✅ hide scrollbar for webkit */}
       <style>{`
         .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
