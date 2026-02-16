@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
 import { ProductWithPrices } from '../types';
 import { getProductColor, getProductIcon } from '../lib/productMeta';
@@ -38,7 +38,6 @@ export function ProductCard({
   isLowestDecrease,
   currentWeek,
 }: ProductCardProps) {
-  // ✅ Always treat prices as numbers (price/reference_price can be string | number)
   const weekPrice = Number(product.prices?.find((p: any) => p.week_number === currentWeek)?.price ?? 0);
   const prevPrice =
     currentWeek > 1
@@ -47,11 +46,9 @@ export function ProductCard({
 
   const refPrice = Number((product as any).reference_price ?? 0);
 
-  // vs reference
   const diffRef = weekPrice - refPrice;
   const pctRef = refPrice > 0 ? (diffRef / refPrice) * 100 : 0;
 
-  // vs previous week
   const diffPrev = weekPrice - prevPrice;
   const pctPrev = prevPrice > 0 ? (diffPrev / prevPrice) * 100 : 0;
 
@@ -84,7 +81,6 @@ export function ProductCard({
   const refBadge = badgeStyle(pctRef);
   const prevBadge = badgeStyle(pctPrev);
 
-  // optional weight if exists in your data (won't crash TS build)
   const weight = (product as any).weight as string | undefined;
 
   return (
@@ -112,7 +108,9 @@ export function ProductCard({
             />
           ) : (
             <i
-              className={`fa-solid ${iconValue} text-5xl transition-transform duration-300 ${isSelected ? 'scale-110' : ''}`}
+              className={`fa-solid ${iconValue} text-5xl transition-transform duration-300 ${
+                isSelected ? 'scale-100' : ''
+              }`}
               style={{ color: colorValue }}
             />
           )}
@@ -140,6 +138,7 @@ export function ProductCard({
         </div>
       </div>
 
+      {/* ✅ PRICE */}
       <div className="text-center mb-3">
         <div
           className={`text-4xl font-black mb-2 transition-all duration-300 ${
@@ -147,13 +146,12 @@ export function ProductCard({
           }`}
           style={{ color: colorValue }}
         >
-<span dir="ltr" className="inline-flex items-baseline whitespace-nowrap tabular-nums">
-  {Number(weekPrice).toFixed(2)}
-  <span className="ml-[2px] text-[15px] font-semibold">NIS</span>
-</span>
-
+          <span dir="ltr" className="inline-flex items-baseline whitespace-nowrap tabular-nums">
+            {Number(weekPrice).toFixed(2)}
+            <span className="ml-[2px] text-[15px] font-semibold">NIS</span>
+          </span>
         </div>
-
+      </div>
 
       {/* ✅ Excel-like badges */}
       <div className="flex flex-wrap justify-center gap-2">
@@ -170,9 +168,7 @@ export function ProductCard({
 
           <span className={`${refBadge.text}`}>عن الاسترشادي: {formatSignedPercent(pctRef, 1)}</span>
 
-          <span className="text-gray-500 font-semibold">
-            ({formatSignedMoney(diffRef, 2)} NIS)
-          </span>
+          <span className="text-gray-500 font-semibold">({formatSignedMoney(diffRef, 2)} NIS)</span>
         </div>
 
         <div
@@ -193,13 +189,12 @@ export function ProductCard({
           </span>
 
           {currentWeek !== 1 && (
-            <span className="text-gray-500 font-semibold">
-              ({formatSignedMoney(diffPrev, 2)} NIS)
-            </span>
+            <span className="text-gray-500 font-semibold">({formatSignedMoney(diffPrev, 2)} NIS)</span>
           )}
         </div>
       </div>
 
+      {/* ✅ FOOTER */}
       <div className="flex justify-between items-center text-sm text-gray-600 pt-3 border-t border-gray-100 text-right mt-4">
         <div>
           <span className="font-semibold">السعر الاسترشادي: </span>
