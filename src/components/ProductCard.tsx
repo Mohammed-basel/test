@@ -132,11 +132,16 @@ const prevBadge = badgeStyle(pctPrev);
 
       <div className="text-center mb-3">
         <div
-          className={`text-4xl font-black mb-2 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
+          className={`text-4xl font-black mb-2 transition-all duration-300 ${
+            isSelected ? 'scale-110' : ''
+          }`}
           style={{ color: colorValue }}
         >
-          NIS{weekPrice.toFixed(2)}
+          {weekPrice.toFixed(2)}{' '}
+          <span className="text-[15px] font-semibold align-baseline">NIS</span>
         </div>
+      </div>
+
 
         {/* ✅ Excel-like badges */}
         <div className="flex flex-wrap justify-center gap-2">
