@@ -39,10 +39,12 @@ export function ProductTicker({
   products,
   currentWeek,
   maxItems = 25,
+  onSelectProduct,
 }: {
   products: ProductWithPrices[];
   currentWeek: number;
   maxItems?: number;
+  onSelectProduct?: (id: string | number) => void;
 }) {
   const baseItems = useMemo(() => {
     return [...products]
@@ -76,10 +78,11 @@ export function ProductTicker({
             const under = it.hasRef && it.price < it.ref - 0.0001;
 
             return (
-              <div
-                key={`${it.id}-${idx}`}
-                className="inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0"
-              >
+                <div
+                  key={`${it.id}-${idx}`}
+                  onClick={() => onSelectProduct?.(it.id)}
+                  className="inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition"
+                >
                 {/* Product Name */}
                 <span className="text-sm font-bold text-gray-800">
                   {it.name}
