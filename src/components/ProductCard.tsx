@@ -172,9 +172,9 @@ const prevBadge = badgeStyle(pctPrev);
       <div className="flex justify-between items-center text-sm text-gray-600 pt-3 border-t border-gray-100 text-right">
         <div>
           <span className="font-semibold">السعر الاسترشادي: </span>
-          <span className="text-gray-500">₪{product.reference_price.toFixed(2)}</span>
+          <span className="font-bold">₪{product.reference_price.toFixed(2)}</span>
         </div>
-        <div className="text-gray-400">الأسبوع {currentWeek}</div>
+        <div className="text-gray-500">الأسبوع {currentWeek}</div>
       </div>
     </button>
   );
