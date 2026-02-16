@@ -64,6 +64,7 @@ export function ProductTicker({
   if (!baseItems.length) return null;
 
   return (
+    <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
     <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
       {/* Viewport */}
       <div className="ticker-viewport relative">
@@ -108,6 +109,7 @@ export function ProductTicker({
         <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10" />
         <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10" />
       </div>
+    </div>
     </div>
   );
 }
