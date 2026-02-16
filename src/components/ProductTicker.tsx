@@ -131,7 +131,7 @@ export function ProductTicker({
   };
 
   return (
-    <div dir="rtl">
+    <div className="bg-white rounded-xl shadow-lg p-5 mb-6" dir="rtl" >
       {/* Header */}
       <div className="flex items-center justify-start mb-2" dir="rtl">
         <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
