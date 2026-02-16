@@ -142,12 +142,18 @@ export function ProductCard({
 
       <div className="text-center mb-3">
         <div
-          className={`text-4xl font-black mb-2 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
+          className={`text-4xl font-black mb-2 transition-all duration-300 ${
+            isSelected ? 'scale-110' : ''
+          }`}
           style={{ color: colorValue }}
         >
-          {weekPrice.toFixed(2)} <span className="text-[15px] font-semibold align-baseline">NIS</span>
+<span dir="ltr" className="inline-flex items-baseline whitespace-nowrap tabular-nums">
+  {Number(weekPrice).toFixed(2)}
+  <span className="ml-[2px] text-[15px] font-semibold">NIS</span>
+</span>
+
         </div>
-      </div>
+
 
       {/* ✅ Excel-like badges */}
       <div className="flex flex-wrap justify-center gap-2">
