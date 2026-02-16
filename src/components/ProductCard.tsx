@@ -1,180 +1,194 @@
-import { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
-import { ProductWithPrices } from '../types';
-import { getProductColor, getProductIcon } from '../lib/productMeta';
+// src/components/ProductCard.tsx
+import React, { useEffect, useMemo, useState } from "react";
+import type { ProductWithPrices } from "../types";
 
-interface ProductCardProps {
+/**
+ * If your IDs on disk include a leading zero (e.g. 011100103.png)
+ * but your data sends 11100103, you can normalize here.
+ *
+ * Set EXPECTED_ID_LEN to 9 if your filenames are always 9 digits.
+ * Set to 0 to disable normalization.
+ */
+const EXPECTED_ID_LEN = 0; // e.g. 9 to pad with leading zeros, or 0 to disable
+
+function normalizeId(id: string) {
+  if (!EXPECTED_ID_LEN) return id;
+  const s = String(id ?? "");
+  return s.padStart(EXPECTED_ID_LEN, "0");
+}
+
+type Props = {
   product: ProductWithPrices;
-  isSelected: boolean;
-  isDimmed?: boolean;
-  onToggle: () => void;
-  isHighestIncrease?: boolean;
-  isLowestDecrease?: boolean;
-  currentWeek: number;
-}
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 
-function formatSignedPercent(v: number, decimals = 1) {
-  const sign = v > 0 ? '+' : v < 0 ? '−' : '';
-  return `${sign}${Math.abs(v).toFixed(decimals)}%`;
-}
+  // Optional: if you have a “current week” or “latest price” you show
+  currentWeek?: number;
 
-function badgeStyle(percent: number) {
-  if (percent > 0.5) return { text: 'text-red-700', bg: 'bg-red-50', border: 'border-red-300' };
-  if (percent < -0.5) return { text: 'text-green-700', bg: 'bg-green-50', border: 'border-green-300' };
-  return { text: 'text-gray-700', bg: 'bg-gray-50', border: 'border-gray-200' };
-}
+  // Optional: language/dir if you’re using bilingual UI
+  lang?: "ar" | "en";
+};
 
 export function ProductCard({
   product,
-  isSelected,
-  isDimmed,
-  onToggle,
-  isHighestIncrease,
-  isLowestDecrease,
-  currentWeek
-}: ProductCardProps) {
-  const weekPrice = product.prices.find(p => p.week_number === currentWeek)?.price ?? 0;
-  const prevPrice = currentWeek > 1 ? (product.prices.find(p => p.week_number === currentWeek - 1)?.price ?? 0) : 0;
+  selected = false,
+  onSelect,
+  currentWeek,
+  lang = "ar",
+}: Props) {
+  const dir = lang === "ar" ? "rtl" : "ltr";
 
-  // vs reference
-  const diffRef = weekPrice - product.reference_price;
-  const pctRef = product.reference_price ? (diffRef / product.reference_price) * 100 : 0;
+  const baseUrl = import.meta.env.BASE_URL; // e.g. "/ramadan2026/"
+  const productId = useMemo(() => normalizeId(product.id), [product.id]);
 
-  // vs previous week
-  const diffPrev = weekPrice - prevPrice;
-  const pctPrev = prevPrice ? (diffPrev / prevPrice) * 100 : 0;
+  /**
+   * Decide if this product should try a FILE icon at all.
+   * -----------------------------------------------
+   * If you already have a flag in your data, plug it here.
+   *
+   * Examples you might have:
+   * - product.iconType === "file"
+   * - product.hasIconFile === true
+   * - product.iconName exists
+   *
+   * Current safe behavior:
+   * - If any of these optional flags exist and say "use default", we skip file icons.
+   * - Otherwise we try file icons (png->svg->stop).
+   */
+  const shouldTryFileIcon = useMemo(() => {
+    const anyProduct = product as any;
 
-  const isLargeChange = Math.abs(pctRef) > 5;
+    // If you have explicit "use default <i>" flags, respect them
+    if (anyProduct.useDefaultIcon === true) return false;
+    if (anyProduct.iconType && anyProduct.iconType !== "file") return false;
+    if (anyProduct.iconSource && anyProduct.iconSource !== "file") return false;
 
-  const iconValue = getProductIcon(product);
-  const colorValue = getProductColor(product);
+    // Otherwise: try file icon by default
+    return true;
+  }, [product]);
 
-  const baseUrl = import.meta.env.BASE_URL || '/';
+  // Icon src state:
+  // - string => <img src=...>
+  // - null => show default <i> and STOP network requests
+  const [iconSrc, setIconSrc] = useState<string | null>(() => {
+    if (!shouldTryFileIcon) return null;
+    return `${baseUrl}icons/${productId}.png`;
+  });
 
-  // Icons after build (no rebuild needed):
-  // Put files in /public/icons/ (copied to dist/icons/):
-  // - /icons/<productId>.png  (preferred)
-  // - /icons/<productId>.svg  (fallback)
-  const [iconSrc, setIconSrc] = useState<string>(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`);
-  const [iconBroken, setIconBroken] = useState(false);
-
+  // Reset icon when product changes
   useEffect(() => {
-    setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`);
-    setIconBroken(false);
-  }, [product.id]);
-
-  const handleIconError = () => {
-    // Try SVG only if PNG is missing, then fallback to FontAwesome.
-    if (iconSrc.endsWith('.png')) {
-      setIconSrc(`${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.svg`);
+    if (!shouldTryFileIcon) {
+      setIconSrc(null);
       return;
     }
-    setIconBroken(true);
+    setIconSrc(`${baseUrl}icons/${productId}.png`);
+  }, [baseUrl, productId, shouldTryFileIcon]);
+
+  const handleIconError = () => {
+    // If already stopped, do nothing
+    if (!iconSrc) return;
+
+    // PNG failed -> try SVG
+    if (iconSrc.endsWith(".png")) {
+      setIconSrc(`${baseUrl}icons/${productId}.svg`);
+      return;
+    }
+
+    // SVG failed too -> STOP and show default <i>
+    setIconSrc(null);
   };
 
-const refBadge = badgeStyle(pctRef);
-const prevBadge = badgeStyle(pctPrev);
+  // ----- Example values (adapt to your types/UI) -----
+  const name = (product as any).nameAr ?? (product as any).name ?? productId;
+
+  // If you store current/last price in your structure, keep it consistent:
+  const latestPrice = useMemo(() => {
+    const prices = (product as any).prices as Array<any> | undefined;
+    if (!prices?.length) return null;
+
+    if (typeof currentWeek === "number") {
+      const found = prices.find((p) => p.week_number === currentWeek || p.week === currentWeek);
+      if (found?.price != null) return found.price;
+    }
+
+    // fallback: last item
+    const last = prices[prices.length - 1];
+    return last?.price ?? null;
+  }, [product, currentWeek]);
+
+  const referencePrice = (product as any).reference_price ?? (product as any).referencePrice ?? null;
+
+  // Simple comparison (optional)
+  const priceDiff = useMemo(() => {
+    if (latestPrice == null || referencePrice == null) return null;
+    return Number(latestPrice) - Number(referencePrice);
+  }, [latestPrice, referencePrice]);
+
+  const diffColorClass =
+    priceDiff == null
+      ? "text-slate-600"
+      : priceDiff > 0
+      ? "text-red-600"
+      : priceDiff < 0
+      ? "text-green-600"
+      : "text-slate-600";
+
+  // ---------------------------------------------------
 
   return (
     <button
-      onClick={onToggle}
-      className={`bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 p-5 text-left w-full border-2 ${
-        isSelected ? 'border-blue-600 shadow-2xl' : 'border-transparent hover:border-gray-200'
-      } ${isLargeChange ? 'relative overflow-hidden' : ''} ${
-        isDimmed && !isSelected ? 'opacity-40 grayscale' : ''
-      }`}
+      dir={dir}
+      type="button"
+      onClick={() => onSelect?.(product.id)}
+      className={[
+        "w-full text-start rounded-xl border p-3 transition",
+        selected ? "border-blue-500 ring-2 ring-blue-200" : "border-slate-200 hover:border-slate-300",
+      ].join(" ")}
     >
-      {isLargeChange && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-20 animate-pulse-glow pointer-events-none"></div>
-      )}
+      <div className="flex items-center gap-3">
+        {/* ICON */}
+        <div className="shrink-0 w-12 h-12 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center overflow-hidden">
+          {iconSrc ? (
+            <img
+              src={iconSrc}
+              alt=""
+              className="w-9 h-9 object-contain"
+              onError={handleIconError}
+              loading="lazy"
+            />
+          ) : (
+            // Default icon (FontAwesome example)
+            <i className="fa-solid fa-basket-shopping text-slate-600 text-xl" />
+          )}
+        </div>
 
-      <div className="flex items-center gap-4 mb-4 relative">
-        <div className="relative">
-{!iconBroken ? (
-  <img
-    src={iconSrc}
-    alt=""
-    className={`w-14 h-14 object-contain transition-transform duration-300 ${isSelected ? 'scale-110' : ''}`}
-    // If you want the icon to inherit the card color, export your SVG with fill="currentColor"
-    // and use that color in the SVG itself. PNG/SVG-as-image won't auto-recolor.
-  onError={handleIconError}
-  />
-) : (
-  <i
-    className={`fa-solid ${iconValue} text-5xl transition-transform duration-300 ${
-      isSelected ? 'scale-110' : ''
-    }`}
-    style={{ color: colorValue }}
-  />
-)}
+        {/* TEXT */}
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-slate-800 truncate">{name}</div>
 
-          {isHighestIncrease && (
-            <div className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1.5 shadow-lg animate-pulse">
-              <AlertTriangle className="w-5 h-5 text-white" strokeWidth={2.5} />
+          <div className="mt-1 flex items-center gap-3 text-sm">
+            <div className="text-slate-600">
+              {lang === "ar" ? "السعر" : "Price"}:{" "}
+              <span className="font-semibold">
+                {latestPrice == null ? "—" : Number(latestPrice).toFixed(2)}
+              </span>
             </div>
-          )}
-          {isLowestDecrease && (
-            <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1.5 shadow-lg animate-pulse">
-              <TrendingDown className="w-5 h-5 text-white" strokeWidth={2.5} />
+
+            <div className="text-slate-600">
+              {lang === "ar" ? "الاسترشادي" : "Ref"}:{" "}
+              <span className="font-semibold">
+                {referencePrice == null ? "—" : Number(referencePrice).toFixed(2)}
+              </span>
             </div>
-          )}
-        </div>
 
-        <div className="flex-1">
-          <h3 className="text-2xl font-bold text-gray-800">{product.name}</h3>
-          {product.weight && (
-            <p className="text-sm font-semibold mt-1" style={{ color: colorValue }}>
-              {product.weight}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <div className="text-center mb-3">
-        <div
-          className={`text-4xl font-black mb-2 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
-          style={{ color: colorValue }}
-        >
-          ₪{weekPrice.toFixed(2)}
-        </div>
-
-        {/* ✅ Excel-like badges */}
-        <div className="flex flex-wrap justify-center gap-2">
-          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-sm border ${refBadge.bg} ${refBadge.border}`}>
-            {pctRef > 0.5 ? (
-              <TrendingUp className={`w-4 h-4 ${refBadge.text}`} />
-            ) : pctRef < -0.5 ? (
-              <TrendingDown className={`w-4 h-4 ${refBadge.text}`} />
-            ) : (
-              <span className={`${refBadge.text}`}>→</span>
+            {priceDiff != null && (
+              <div className={["font-semibold", diffColorClass].join(" ")}>
+                {priceDiff > 0 ? "+" : ""}
+                {priceDiff.toFixed(2)}
+              </div>
             )}
-            <span className={`${refBadge.text}`}>عن الاسترشادي: {formatSignedPercent(pctRef, 1)}</span>
-            <span className="text-gray-500 font-semibold">({formatSignedPercent(diffRef, 2).replace('%','')} ₪)</span>
-          </div>
-
-          <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-sm border ${prevBadge.bg} ${prevBadge.border}`}>
-            {currentWeek === 1 ? (
-              <span className="text-gray-600">—</span>
-            ) : pctPrev > 0.5 ? (
-              <TrendingUp className={`w-4 h-4 ${prevBadge.text}`} />
-            ) : pctPrev < -0.5 ? (
-              <TrendingDown className={`w-4 h-4 ${prevBadge.text}`} />
-            ) : (
-              <span className={`${prevBadge.text}`}>→</span>
-            )}
-            <span className={`${prevBadge.text}`}>
-              عن الأسبوع السابق: {currentWeek === 1 ? '—' : formatSignedPercent(pctPrev, 1)}
-            </span>
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-between items-center text-sm text-gray-600 pt-3 border-t border-gray-100 text-right">
-        <div>
-          <span className="font-semibold">السعر الاسترشادي: </span>
-          <span className="font-bold">₪{product.reference_price.toFixed(2)}</span>
-        </div>
-        <div className="text-gray-500">الأسبوع {currentWeek}</div>
       </div>
     </button>
   );
