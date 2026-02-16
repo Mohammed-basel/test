@@ -27,7 +27,15 @@ function App() {
   const [hasUserSelected, setHasUserSelected] = useState(false);
 
   const ALL_VALUE = '__all__';
+  
+const adherenceByWeek: Record<number, number> = {
+  1: 24,
+  2: 28,
+};
 
+const manualAdherence = adherenceByWeek[currentWeek];
+
+  
   const weekOptions = useMemo(() => {
     const map = new Map<number, string>();
     for (const p of products) {
@@ -298,10 +306,10 @@ URL.revokeObjectURL(url);
         )}
 
         <KPICards
-          maxIncrease={maxIncrease}
-          maxDecrease={maxDecrease}
-          currentWeek={currentWeek}
           products={products}
+          currentWeek={currentWeek}
+          maxWeek={maxWeek}
+          adherencePercent={manualAdherence}
         />
 
         <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
