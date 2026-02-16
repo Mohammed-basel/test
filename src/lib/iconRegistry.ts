@@ -3,8 +3,8 @@
  *
  * How to add/override an icon:
  * 1) Put a file in: src/assets/icons/
- * 2) Name it by product id: 11100103.svg  (or .png)
- * 3) Leave products.csv icon column empty (or set icon to "11100103.svg") — both work.
+ * 2) Name it by product id: 11100103.png  (or .svg)
+ * 3) Leave products.csv icon column empty (or set icon to "11100103.png") — both work.
  */
 
 const ICONS = import.meta.glob('../assets/icons/*.{svg,png}', {
@@ -29,11 +29,11 @@ export function getLocalIconUrlByProductId(productId: string): string | null {
   const id = (productId || '').trim();
   if (!id) return null;
 
-  // Prefer svg then png
-  const svg = getLocalIconUrlByFileName(`${id}.svg`);
-  if (svg) return svg;
+  // Prefer png then svg
   const png = getLocalIconUrlByFileName(`${id}.png`);
   if (png) return png;
+  const svg = getLocalIconUrlByFileName(`${id}.svg`);
+  if (svg) return svg;
 
   return null;
 }
