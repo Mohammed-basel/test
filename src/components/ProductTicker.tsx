@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react';
 
 interface PriceEntry {
@@ -126,6 +126,7 @@ export function ProductTicker({
     const dx = e.clientX - dragState.current.startX;
     if (Math.abs(dx) > 3) dragState.current.moved = true;
 
+    // feels natural in RTL
     el.scrollLeft = dragState.current.startScrollLeft - dx;
     e.preventDefault();
   };
@@ -134,17 +135,34 @@ export function ProductTicker({
     if (dragState.current.pointerId === e.pointerId) stopDrag();
   };
 
-  const trackItems = [...baseItems, ...baseItems];
-  if (!baseItems.length) return null;
+  const trackItems = useMemo(() => [...baseItems, ...baseItems], [baseItems]);
+  const hasItems = baseItems.length > 0;
+
+  // ✅ Fix: start aligned to the beginning of a full item (no cut)
+  useLayoutEffect(() => {
+    const el = viewportRef.current;
+    if (!el || !hasItems) return;
+
+    // scroll first visible item fully into view
+    // Works well in RTL across browsers
+    requestAnimationFrame(() => {
+      const first = el.querySelector<HTMLElement>('[data-ticker-item="first"]');
+      first?.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'start' });
+    });
+  }, [hasItems, currentWeek, maxItems]);
+
+  if (!hasItems) return null;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
+      {/* Week title */}
       <div className="flex items-center justify-start mb-2" dir="rtl">
         <div className="text-sm font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-lg px-3 py-1">
-          متوسط الأسبوع {currentWeek}
+          متوسط أسعار الأسبوع {currentWeek}
           {weekDateIso && (
             <span className="text-gray-500 font-medium whitespace-nowrap tabular-nums" dir="ltr">
-              {' '}({formatWeekDate(weekDateIso)})
+              {' '}
+              ({formatWeekDate(weekDateIso)})
             </span>
           )}
         </div>
@@ -152,13 +170,17 @@ export function ProductTicker({
 
       <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm" dir="rtl">
         <div className="ticker-viewport relative">
+          {/* ✅ scrollable + draggable + snap (prevents starting mid-card) */}
           <div
             ref={viewportRef}
-            className={`overflow-x-auto overflow-y-hidden select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+            className={`overflow-x-auto overflow-y-hidden select-none snap-x snap-mandatory ${
+              isDragging ? 'cursor-grabbing' : 'cursor-grab'
+            }`}
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
               touchAction: 'pan-y',
+              scrollPaddingInlineStart: '12px',
             }}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
@@ -179,11 +201,13 @@ export function ProductTicker({
                 return (
                   <div
                     key={`${it.id}-${idx}`}
+                    data-ticker-item={idx === 0 ? 'first' : undefined}
                     onClick={() => {
+                      // ✅ keep old clickable behavior, avoid click while dragging
                       if (dragState.current.moved) return;
                       onSelectProduct?.(it.id);
                     }}
-                    className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${
+                    className={`inline-flex snap-start items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition ${
                       selectedId === it.id ? 'ring-2 ring-blue-500' : ''
                     }`}
                   >
@@ -195,6 +219,7 @@ export function ProductTicker({
                       {under && <ArrowDown className="w-3.5 h-3.5 text-green-600 stroke-[3px]" />}
                       {!above && !under && <Minus className="w-3.5 h-3.5 text-gray-400" />}
 
+                      {/* ✅ currency formatting consistent (NIS smaller + to the right) */}
                       <span
                         dir="ltr"
                         className={`inline-flex items-baseline whitespace-nowrap tabular-nums font-black ${
@@ -211,11 +236,13 @@ export function ProductTicker({
             </div>
           </div>
 
+          {/* fades */}
           <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10" />
         </div>
       </div>
 
+      {/* hide scrollbar for webkit */}
       <style>{`
         .ticker-viewport > div::-webkit-scrollbar { display: none; }
       `}</style>
