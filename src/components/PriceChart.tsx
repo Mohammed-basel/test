@@ -216,7 +216,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
             const val = ctx.parsed.y;
             if (ctx.dataset.yAxisID === 'yLine') 
                 return `${lineLabel}: ${val > 0 ? '+' : ''}${val.toFixed(2)}%`;
-            return `${ctx.dataset.label}: ₪${val.toFixed(2)}`;
+            return `${ctx.dataset.label}: NIS${val.toFixed(2)}`;
           },
         },
       },
@@ -234,7 +234,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
         max: yBarLimits.max,
         title: {
           display: true,
-          text: 'السعر (₪)',
+          text: 'السعر (NIS)',
           font: { size: axisTitleFontSize, weight: 'bold' },
         },
         grid: { color: 'rgba(0,0,0,0.06)' },
@@ -318,7 +318,7 @@ export function PriceChart({ products, currentWeek = 1 }: PriceChartProps) {
 
       <div className="flex justify-center gap-6 pt-2 border-t border-gray-100 text-xs sm:text-sm text-gray-600">
         <span>
-          السعر الاسترشادي: <strong className="text-gray-800">₪{ref.toFixed(2)}</strong>
+          السعر الاسترشادي: <strong className="text-gray-800">NIS{ref.toFixed(2)}</strong>
         </span>
         <span>
           الأسبوع المعروض: <strong className="text-blue-600">الأسبوع {currentWeek}</strong>
