@@ -313,6 +313,7 @@ URL.revokeObjectURL(url);
         adherencePercent={manualAdherence}
       />
 
+      <ProductTicker products={products} currentWeek={currentWeek} />
 
         <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
           <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-end">
@@ -399,8 +400,6 @@ URL.revokeObjectURL(url);
   </span>
 </div>
 
-
-          <ProductTicker products={products} currentWeek={currentWeek} />
 </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-8">
