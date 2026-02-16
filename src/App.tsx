@@ -317,7 +317,7 @@ URL.revokeObjectURL(url);
       <div className="max-w-[1800px] mx-auto p-6">
         <header className="text-center mb-8">
           <h1 className="text-2xl sm:text-4xl lg:text-4xl font-black text-blue-900 leading-tight">
-            منصة رصد أسعار لأهم السلع الأساسية خلال شهر رمضان المبارك
+            منصة رصد أسعار أهم السلع الأساسية خلال شهر رمضان المبارك
           </h1>
           <p className="text-lg text-gray-600 font-semibold mt-3">
             متابعة وتحليل أسعار السلع الاستهلاكية المختارة خلال شهر رمضان
