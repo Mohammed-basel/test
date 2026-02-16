@@ -62,20 +62,29 @@ export function ProductTicker({
       .slice(0, maxItems);
   }, [products, currentWeek, maxItems]);
 
-  // Duplicate the array for the seamless loop
   const trackItems = [...baseItems, ...baseItems];
 
   if (!baseItems.length) return null;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-5 mb-6">
+      {/* ✅ Week title above the slider */}
+      <div className="flex items-center justify-between" dir="rtl">
+        <h3 className="text-base font-extrabold text-gray-900">
+          الأسبوع {currentWeek}
+        </h3>
+
+        {/* optional: small hint */}
+        <span className="text-xs font-semibold text-gray-500">
+          اضغط على المنتج لعرض التفاصيل
+        </span>
+      </div>
+
       <div
-        className="mt-4 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm"
+        className="mt-3 rounded-lg border border-gray-200 bg-gray-50 py-3 overflow-hidden shadow-sm"
         dir="rtl"
       >
-        {/* Viewport */}
         <div className="ticker-viewport relative">
-          {/* Track */}
           <div className="ticker-track">
             {trackItems.map((it, idx) => {
               const above = it.hasRef && it.price > it.ref + 0.0001;
@@ -86,18 +95,15 @@ export function ProductTicker({
                   key={`${it.id}-${idx}`}
                   onClick={() => onSelectProduct?.(it.id)}
                   className={`inline-flex items-center gap-3 bg-white border border-gray-100 rounded-full px-4 py-1.5 mx-2 shadow-sm shrink-0 cursor-pointer hover:bg-blue-50 hover:border-blue-200 transition
-                      ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}
-                    `}
+                    ${selectedId === it.id ? 'ring-2 ring-blue-500' : ''}
+                  `}
                 >
-                  {/* Product Name */}
                   <span className="text-sm font-bold text-gray-800">
                     {it.name}
                   </span>
 
-                  {/* Vertical Divider (RTL friendly) */}
                   <div className="h-4 w-[1px] bg-gray-200" />
 
-                  {/* Price Display */}
                   <div className="flex items-center gap-1 flex-row-reverse">
                     {above && (
                       <ArrowUp className="w-3.5 h-3.5 text-red-600 stroke-[3px]" />
@@ -118,7 +124,7 @@ export function ProductTicker({
                           : 'text-gray-600'
                       }`}
                     >
-                      {format2(it.price) + 'NIS'}
+                      {format2(it.price) + ' NIS'}
                     </span>
                   </div>
                 </div>
@@ -126,7 +132,6 @@ export function ProductTicker({
             })}
           </div>
 
-          {/* Gradient Fades flipped for RTL flow */}
           <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-gray-50 to-transparent z-10" />
           <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-gray-50 to-transparent z-10" />
         </div>
