@@ -1,5 +1,4 @@
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -17,13 +16,16 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 /* Keyframes (best outside layers) */
 @keyframes pulse-glow {
   0%, 100% { opacity: 0.2; transform: scaleX(1); }
@@ -34,9 +36,6 @@
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.02); opacity: 0.9; }
 }
-
-
-
 
 @layer utilities {
   .custom-scrollbar::-webkit-scrollbar {
@@ -52,34 +51,33 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #2563eb;
   }
-
   .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
   }
-
   .animate-gentle-pulse {
     animation: gentle-pulse 2s ease-in-out infinite;
   }
-
+  
   .ticker-viewport {
     width: 100%;
     overflow: hidden;
     display: flex;
     align-items: center;
-    /* In RTL, we ensure the direction is set */
     direction: rtl; 
   }
-
+  
   .ticker-track {
     display: flex;
     width: max-content; 
     flex-shrink: 0;
     white-space: nowrap;
-    will-change: transform;
-    /* For RTL, we move from 0 to positive 50% */
+  }
+  
+  /* ✅ Only animate when NOT being dragged */
+  .ticker-viewport:not(.is-dragging) .ticker-track {
     animation: ticker-marquee-rtl 60s linear infinite;
   }
-
+  
   @keyframes ticker-marquee-rtl {
     0% {
       transform: translateX(0);
@@ -89,7 +87,8 @@
       transform: translateX(50%);
     }
   }
-
+  
+  /* ✅ Pause animation on hover */
   .ticker-viewport:hover .ticker-track {
     animation-play-state: paused;
   }
