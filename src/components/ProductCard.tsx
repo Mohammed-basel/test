@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { AlertTriangle, TrendingDown, TrendingUp } from 'lucide-react';
 import { ProductWithPrices } from '../types';
 import { getProductColor, getProductIcon } from '../lib/productMeta';
@@ -27,6 +27,35 @@ function badgeStyle(percent: number) {
 function formatSignedMoney(n: number, decimals = 2) {
   const sign = n > 0 ? '+' : n < 0 ? '−' : '';
   return `${sign}${Math.abs(n).toFixed(decimals)}`;
+}
+
+/**
+ * ✅ Build-time list of existing icon files.
+ * We use Vite's import.meta.glob to detect which files exist,
+ * then render <i> immediately for products without an icon,
+ * avoiding any 404 network requests.
+ */
+const EXISTING_ICON_PATHS = new Set(
+  Object.keys(import.meta.glob('/public/icons/*.{png,svg}', { eager: true })).map((p) =>
+    p.replace('/public', '') // "/icons/11100107.png"
+  )
+);
+
+function makeIconPath(baseUrl: string, file: string) {
+  const b = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+  const f = file.startsWith('/') ? file.slice(1) : file;
+  return `${b}${f}`;
+}
+
+function pickIconUrl(baseUrl: string, id: string | number) {
+  const sid = String(id);
+  const png = `/icons/${sid}.png`;
+  const svg = `/icons/${sid}.svg`;
+
+  if (EXISTING_ICON_PATHS.has(png)) return makeIconPath(baseUrl, png);
+  if (EXISTING_ICON_PATHS.has(svg)) return makeIconPath(baseUrl, svg);
+
+  return null;
 }
 
 export function ProductCard({
@@ -58,25 +87,15 @@ export function ProductCard({
   const colorValue = getProductColor(product);
 
   const baseUrl = import.meta.env.BASE_URL || '/';
-  const iconPng = `${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.png`;
-  const iconSvg = `${baseUrl}${baseUrl.endsWith('/') ? '' : '/'}icons/${product.id}.svg`;
+  const iconUrl = pickIconUrl(baseUrl, product.id);
+  const hasImageIcon = Boolean(iconUrl);
 
-  const [iconSrc, setIconSrc] = useState<string>(iconPng);
-  const [iconBroken, setIconBroken] = useState(false);
-
+  // Optional verification (remove if you don't want console logs)
   useEffect(() => {
-    setIconSrc(iconPng);
-    setIconBroken(false);
+    // This will only log for products using <i> fallback (no icon file)
+    // console.log('[ICON:FALLBACK <i>]', product.id, product.name, iconValue);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, baseUrl]);
-
-  const handleIconError = () => {
-    if (iconSrc.endsWith('.png')) {
-      setIconSrc(iconSvg);
-      return;
-    }
-    setIconBroken(true);
-  };
+  }, [hasImageIcon, product.id]);
 
   const refBadge = badgeStyle(pctRef);
   const prevBadge = badgeStyle(pctPrev);
@@ -98,12 +117,13 @@ export function ProductCard({
 
       <div className="flex items-center gap-4 mb-4 relative">
         <div className="relative">
-          {!iconBroken ? (
+          {hasImageIcon ? (
             <img
-              src={iconSrc}
+              src={iconUrl!}
               alt=""
-              className={`w-14 h-14 object-contain transition-transform duration-300 ${isSelected ? 'scale-100' : ''}`}
-              onError={handleIconError}
+              className={`w-14 h-14 object-contain transition-transform duration-300 ${
+                isSelected ? 'scale-100' : ''
+              }`}
               draggable={false}
             />
           ) : (
@@ -141,9 +161,7 @@ export function ProductCard({
       {/* ✅ PRICE */}
       <div className="text-center mb-3">
         <div
-          className={`text-4xl font-black mb-2 transition-all duration-300 ${
-            isSelected ? 'scale-110' : ''
-          }`}
+          className={`text-4xl font-black mb-2 transition-all duration-300 ${isSelected ? 'scale-110' : ''}`}
           style={{ color: colorValue }}
         >
           <span dir="ltr" className="inline-flex items-baseline whitespace-nowrap tabular-nums">
